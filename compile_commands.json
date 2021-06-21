@@ -1,0 +1,317 @@
+[
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/CPFEM2.f90 -o CMakeFiles/DAMASK_grid.dir/CPFEM2.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/CPFEM2.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpicc -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc  -O3 -DNDEBUG   -o CMakeFiles/DAMASK_grid.dir/C_routines.c.o   -c /home/by/Projects/GitHub/DAMASK/src/C_routines.c",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/C_routines.c"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/DAMASK_interface.f90 -o CMakeFiles/DAMASK_grid.dir/DAMASK_interface.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/DAMASK_interface.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/HDF5_utilities.f90 -o CMakeFiles/DAMASK_grid.dir/HDF5_utilities.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/HDF5_utilities.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/IO.f90 -o CMakeFiles/DAMASK_grid.dir/IO.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/IO.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/LAPACK_interface.f90 -o CMakeFiles/DAMASK_grid.dir/LAPACK_interface.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/LAPACK_interface.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/YAML_parse.f90 -o CMakeFiles/DAMASK_grid.dir/YAML_parse.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/YAML_parse.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/YAML_types.f90 -o CMakeFiles/DAMASK_grid.dir/YAML_types.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/YAML_types.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/base64.f90 -o CMakeFiles/DAMASK_grid.dir/base64.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/base64.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/config.f90 -o CMakeFiles/DAMASK_grid.dir/config.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/config.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/discretization.f90 -o CMakeFiles/DAMASK_grid.dir/discretization.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/discretization.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/element.f90 -o CMakeFiles/DAMASK_grid.dir/element.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/element.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/geometry_plastic_nonlocal.f90 -o CMakeFiles/DAMASK_grid.dir/geometry_plastic_nonlocal.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/geometry_plastic_nonlocal.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/homogenization.f90 -o CMakeFiles/DAMASK_grid.dir/homogenization.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/homogenization.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/homogenization_damage.f90 -o CMakeFiles/DAMASK_grid.dir/homogenization_damage.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/homogenization_damage.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/homogenization_damage_pass.f90 -o CMakeFiles/DAMASK_grid.dir/homogenization_damage_pass.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/homogenization_damage_pass.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/homogenization_mechanical.f90 -o CMakeFiles/DAMASK_grid.dir/homogenization_mechanical.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/homogenization_mechanical.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/homogenization_mechanical_RGC.f90 -o CMakeFiles/DAMASK_grid.dir/homogenization_mechanical_RGC.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/homogenization_mechanical_RGC.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/homogenization_mechanical_isostrain.f90 -o CMakeFiles/DAMASK_grid.dir/homogenization_mechanical_isostrain.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/homogenization_mechanical_isostrain.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/homogenization_mechanical_pass.f90 -o CMakeFiles/DAMASK_grid.dir/homogenization_mechanical_pass.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/homogenization_mechanical_pass.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/homogenization_thermal.f90 -o CMakeFiles/DAMASK_grid.dir/homogenization_thermal.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/homogenization_thermal.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/homogenization_thermal_isotemperature.f90 -o CMakeFiles/DAMASK_grid.dir/homogenization_thermal_isotemperature.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/homogenization_thermal_isotemperature.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/homogenization_thermal_pass.f90 -o CMakeFiles/DAMASK_grid.dir/homogenization_thermal_pass.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/homogenization_thermal_pass.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -ffree-line-length-240 -c /home/by/Projects/GitHub/DAMASK/src/lattice.f90 -o CMakeFiles/DAMASK_grid.dir/lattice.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/lattice.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/material.f90 -o CMakeFiles/DAMASK_grid.dir/material.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/material.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/math.f90 -o CMakeFiles/DAMASK_grid.dir/math.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/math.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/parallelization.f90 -o CMakeFiles/DAMASK_grid.dir/parallelization.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/parallelization.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase.f90 -o CMakeFiles/DAMASK_grid.dir/phase.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_damage.f90 -o CMakeFiles/DAMASK_grid.dir/phase_damage.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_damage.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_damage_anisobrittle.f90 -o CMakeFiles/DAMASK_grid.dir/phase_damage_anisobrittle.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_damage_anisobrittle.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_damage_isobrittle.f90 -o CMakeFiles/DAMASK_grid.dir/phase_damage_isobrittle.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_damage_isobrittle.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_damage_isoductile.f90 -o CMakeFiles/DAMASK_grid.dir/phase_damage_isoductile.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_damage_isoductile.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_mechanical.f90 -o CMakeFiles/DAMASK_grid.dir/phase_mechanical.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_mechanical.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_mechanical_eigen.f90 -o CMakeFiles/DAMASK_grid.dir/phase_mechanical_eigen.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_mechanical_eigen.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_mechanical_eigen_cleavageopening.f90 -o CMakeFiles/DAMASK_grid.dir/phase_mechanical_eigen_cleavageopening.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_mechanical_eigen_cleavageopening.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_mechanical_eigen_slipplaneopening.f90 -o CMakeFiles/DAMASK_grid.dir/phase_mechanical_eigen_slipplaneopening.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_mechanical_eigen_slipplaneopening.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_mechanical_eigen_thermalexpansion.f90 -o CMakeFiles/DAMASK_grid.dir/phase_mechanical_eigen_thermalexpansion.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_mechanical_eigen_thermalexpansion.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_mechanical_elastic.f90 -o CMakeFiles/DAMASK_grid.dir/phase_mechanical_elastic.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_mechanical_elastic.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_mechanical_plastic.f90 -o CMakeFiles/DAMASK_grid.dir/phase_mechanical_plastic.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_mechanical_plastic.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_mechanical_plastic_dislotungsten.f90 -o CMakeFiles/DAMASK_grid.dir/phase_mechanical_plastic_dislotungsten.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_mechanical_plastic_dislotungsten.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_mechanical_plastic_dislotwin.f90 -o CMakeFiles/DAMASK_grid.dir/phase_mechanical_plastic_dislotwin.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_mechanical_plastic_dislotwin.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_mechanical_plastic_isotropic.f90 -o CMakeFiles/DAMASK_grid.dir/phase_mechanical_plastic_isotropic.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_mechanical_plastic_isotropic.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_mechanical_plastic_kinehardening.f90 -o CMakeFiles/DAMASK_grid.dir/phase_mechanical_plastic_kinehardening.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_mechanical_plastic_kinehardening.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_mechanical_plastic_none.f90 -o CMakeFiles/DAMASK_grid.dir/phase_mechanical_plastic_none.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_mechanical_plastic_none.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_mechanical_plastic_nonlocal.f90 -o CMakeFiles/DAMASK_grid.dir/phase_mechanical_plastic_nonlocal.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_mechanical_plastic_nonlocal.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_mechanical_plastic_phenopowerlaw.f90 -o CMakeFiles/DAMASK_grid.dir/phase_mechanical_plastic_phenopowerlaw.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_mechanical_plastic_phenopowerlaw.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_thermal.f90 -o CMakeFiles/DAMASK_grid.dir/phase_thermal.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_thermal.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_thermal_dissipation.f90 -o CMakeFiles/DAMASK_grid.dir/phase_thermal_dissipation.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_thermal_dissipation.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/phase_thermal_externalheat.f90 -o CMakeFiles/DAMASK_grid.dir/phase_thermal_externalheat.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/phase_thermal_externalheat.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/prec.f90 -o CMakeFiles/DAMASK_grid.dir/prec.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/prec.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/quit.f90 -o CMakeFiles/DAMASK_grid.dir/quit.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/quit.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/results.f90 -o CMakeFiles/DAMASK_grid.dir/results.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/results.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/rotations.f90 -o CMakeFiles/DAMASK_grid.dir/rotations.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/rotations.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/system_routines.f90 -o CMakeFiles/DAMASK_grid.dir/system_routines.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/system_routines.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/zlib.f90 -o CMakeFiles/DAMASK_grid.dir/zlib.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/zlib.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/grid/DAMASK_grid.f90 -o CMakeFiles/DAMASK_grid.dir/grid/DAMASK_grid.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/grid/DAMASK_grid.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/grid/discretization_grid.f90 -o CMakeFiles/DAMASK_grid.dir/grid/discretization_grid.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/grid/discretization_grid.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/grid/grid_damage_spectral.f90 -o CMakeFiles/DAMASK_grid.dir/grid/grid_damage_spectral.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/grid/grid_damage_spectral.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/grid/grid_mech_FEM.f90 -o CMakeFiles/DAMASK_grid.dir/grid/grid_mech_FEM.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/grid/grid_mech_FEM.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/grid/grid_mech_spectral_basic.f90 -o CMakeFiles/DAMASK_grid.dir/grid/grid_mech_spectral_basic.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/grid/grid_mech_spectral_basic.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/grid/grid_mech_spectral_polarisation.f90 -o CMakeFiles/DAMASK_grid.dir/grid/grid_mech_spectral_polarisation.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/grid/grid_mech_spectral_polarisation.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/grid/grid_thermal_spectral.f90 -o CMakeFiles/DAMASK_grid.dir/grid/grid_thermal_spectral.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/grid/grid_thermal_spectral.f90"
+},
+{
+  "directory": "/home/by/Projects/GitHub/DAMASK/src",
+  "command": "/home/by/Programs/openmpi/4.1.1/bin/mpif90 -DDAMASKVERSION=\\\"v3.0.0-alpha3-260-gdf5f9822f\\\" -DGrid -DPETSc   -fopenmp -std=f2018 -pedantic-errors -O2  -xf95-cpp-input -fPIC -fPIE -ffree-line-length-132 -fimplicit-none -Wall -Wextra -Wcharacter-truncation -Wunderflow -Wsuggest-attribute=pure -Wsuggest-attribute=noreturn -Wconversion-extra -Wimplicit-procedure -Wno-unused-parameter -ffpe-summary=all  -fdefault-real-8 -fdefault-double-8 -I/home/by/Programs/petsc/3.14.6/include -I/home/by/Programs/openmpi/4.1.1/include    -c /home/by/Projects/GitHub/DAMASK/src/grid/spectral_utilities.f90 -o CMakeFiles/DAMASK_grid.dir/grid/spectral_utilities.f90.o",
+  "file": "/home/by/Projects/GitHub/DAMASK/src/grid/spectral_utilities.f90"
+}
+]
