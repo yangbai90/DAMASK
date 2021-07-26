@@ -8,9 +8,12 @@ module discretization_mesh
 #include <petsc/finclude/petscdmplex.h>
 #include <petsc/finclude/petscis.h>
 #include <petsc/finclude/petscdmda.h>
-  use PETScdmplex
-  use PETScdmda
-  use PETScis
+  use PETScDMplex
+  use PETScDMDA
+  use PETScIS
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR>14) && !defined(PETSC_HAVE_MPI_F90MODULE_VISIBILITY)
+  use MPI_f08
+#endif
 
   use DAMASK_interface
   use parallelization
@@ -111,9 +114,9 @@ subroutine discretization_mesh_init(restart)
   ! get number of IDs in face sets (for boundary conditions?)
   call DMGetLabelSize(globalMesh,'Face Sets',mesh_Nboundaries,ierr)
   CHKERRQ(ierr)
-  call MPI_Bcast(mesh_Nboundaries,1,MPI_INTEGER,0,PETSC_COMM_WORLD,ierr)
-  call MPI_Bcast(mesh_NcpElemsGlobal,1,MPI_INTEGER,0,PETSC_COMM_WORLD,ierr)
-  call MPI_Bcast(dimPlex,1,MPI_INTEGER,0,PETSC_COMM_WORLD,ierr)
+  call MPI_Bcast(mesh_Nboundaries,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+  call MPI_Bcast(mesh_NcpElemsGlobal,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+  call MPI_Bcast(dimPlex,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
 
   if (worldrank == 0) then
     call DMClone(globalMesh,geomMesh,ierr)
@@ -134,7 +137,7 @@ subroutine discretization_mesh_init(restart)
     CHKERRQ(ierr)
     call ISRestoreIndicesF90(faceSetIS,pFaceSets,ierr)
   endif
-  call MPI_Bcast(mesh_boundaries,mesh_Nboundaries,MPI_INTEGER,0,PETSC_COMM_WORLD,ierr)
+  call MPI_Bcast(mesh_boundaries,mesh_Nboundaries,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
 
   call DMDestroy(globalMesh,ierr); CHKERRQ(ierr)
 
@@ -158,7 +161,7 @@ subroutine discretization_mesh_init(restart)
   do j = 1, mesh_NcpElems
     call DMGetLabelValue(geomMesh,'Cell Sets',j-1,materialAt(j),ierr)
     CHKERRQ(ierr)
-  end do
+  enddo
   materialAt = materialAt + 1
 
   if (debug_element < 1 .or. debug_element > mesh_NcpElems) call IO_error(602,ext_msg='element')

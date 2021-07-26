@@ -8,7 +8,11 @@
 !--------------------------------------------------------------------------------------------------
 program DAMASK_grid
 #include <petsc/finclude/petscsys.h>
-  use PETScsys
+  use PETScSys
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR>14) && !defined(PETSC_HAVE_MPI_F90MODULE_VISIBILITY)
+  use MPI_f08
+#endif
+
   use prec
   use parallelization
   use DAMASK_interface
@@ -432,7 +436,7 @@ program DAMASK_grid
           print'(/,a,i0,a)', ' increment ', totalIncsCounter, ' NOT converged'
         endif; flush(IO_STDOUT)
 
-        call MPI_Allreduce(interface_SIGUSR1,signal,1,MPI_LOGICAL,MPI_LOR,PETSC_COMM_WORLD,ierr)
+        call MPI_Allreduce(interface_SIGUSR1,signal,1,MPI_LOGICAL,MPI_LOR,MPI_COMM_WORLD,ierr)
         if (ierr /= 0) error stop 'MPI error'
         if (mod(inc,loadCases(l)%f_out) == 0 .or. signal) then
           print'(1/,a)', ' ... writing results to file ......................................'
@@ -440,14 +444,14 @@ program DAMASK_grid
           call CPFEM_results(totalIncsCounter,time)
         endif
         if(signal) call interface_setSIGUSR1(.false.)
-        call MPI_Allreduce(interface_SIGUSR2,signal,1,MPI_LOGICAL,MPI_LOR,PETSC_COMM_WORLD,ierr)
+        call MPI_Allreduce(interface_SIGUSR2,signal,1,MPI_LOGICAL,MPI_LOR,MPI_COMM_WORLD,ierr)
         if (ierr /= 0) error stop 'MPI error'
         if (mod(inc,loadCases(l)%f_restart) == 0 .or. signal) then
           call mechanical_restartWrite
           call CPFEM_restartWrite
         endif
         if(signal) call interface_setSIGUSR2(.false.)
-        call MPI_Allreduce(interface_SIGTERM,signal,1,MPI_LOGICAL,MPI_LOR,PETSC_COMM_WORLD,ierr)
+        call MPI_Allreduce(interface_SIGTERM,signal,1,MPI_LOGICAL,MPI_LOR,MPI_COMM_WORLD,ierr)
         if (ierr /= 0) error stop 'MPI error'
         if (signal) exit loadCaseLooping
       endif skipping
@@ -478,20 +482,13 @@ subroutine getMaskedTensor(values,mask,tensor)
 
 
   values = 0.0
-  if (tensor%length == 9) then ! temporary support for deprecated 1D tensor
-    do i = 1,9
-      mask((i-1)/3+1,mod(i-1,3)+1) = tensor%get_asString(i) /= 'x'
-      if (mask((i-1)/3+1,mod(i-1,3)+1)) values((i-1)/3+1,mod(i-1,3)+1) = tensor%get_asFloat(i)
+  do i = 1,3
+    row => tensor%get(i)
+    do j = 1,3
+      mask(i,j) = row%get_asString(j) /= 'x'
+      if (mask(i,j)) values(i,j) = row%get_asFloat(j)
     enddo
-  else
-    do i = 1,3
-      row => tensor%get(i)
-      do j = 1,3
-        mask(i,j) = row%get_asString(j) /= 'x'                      ! ToDo change to np.masked behavior
-        if (mask(i,j)) values(i,j) = row%get_asFloat(j)
-      enddo
-    enddo
-  endif
+  enddo
 
 end subroutine
 

@@ -646,9 +646,8 @@ pure function math_33to9(m33)
 
   integer :: i
 
-  do i = 1, 9
-    math_33to9(i) = m33(MAPPLAIN(1,i),MAPPLAIN(2,i))
-  enddo
+
+  math_33to9 = [(m33(MAPPLAIN(1,i),MAPPLAIN(2,i)),i=1,9)]
 
 end function math_33to9
 
@@ -662,6 +661,7 @@ pure function math_9to33(v9)
   real(pReal), dimension(9), intent(in) :: v9
 
   integer :: i
+
 
   do i = 1, 9
     math_9to33(MAPPLAIN(1,i),MAPPLAIN(2,i)) = v9(i)
@@ -685,15 +685,14 @@ pure function math_sym33to6(m33,weighted)
   real(pReal), dimension(6) :: w
   integer :: i
 
+
   if(present(weighted)) then
     w = merge(NRMMANDEL,1.0_pReal,weighted)
   else
     w = NRMMANDEL
   endif
 
-  do i = 1, 6
-    math_sym33to6(i) = w(i)*m33(MAPNYE(1,i),MAPNYE(2,i))
-  enddo
+  math_sym33to6 = [(w(i)*m33(MAPNYE(1,i),MAPNYE(2,i)),i=1,6)]
 
 end function math_sym33to6
 
@@ -842,18 +841,18 @@ end function math_Voigt66to3333
 !--------------------------------------------------------------------------------------------------
 !> @brief draw a random sample from Gauss variable
 !--------------------------------------------------------------------------------------------------
-real(pReal) function math_sampleGaussVar(meanvalue, stddev, width)
+real(pReal) function math_sampleGaussVar(mu, sigma, width)
 
-  real(pReal), intent(in) ::            meanvalue, &                                                !< meanvalue of gauss distribution
-                                        stddev                                                      !< standard deviation of gauss distribution
-  real(pReal), intent(in), optional ::  width                                                       !< width of considered values as multiples of standard deviation
+  real(pReal), intent(in) ::            mu, &                                                       !< mean
+                                        sigma                                                       !< standard deviation
+  real(pReal), intent(in), optional ::  width                                                       !< cut off as multiples of standard deviation
 
   real(pReal), dimension(2) ::          rnd                                                         ! random numbers
-  real(pReal) ::                        scatter, &                                                  ! normalized scatter around meanvalue
+  real(pReal) ::                        scatter, &                                                  ! normalized scatter around mean
                                         width_
 
-  if (abs(stddev) < tol_math_check) then
-    math_sampleGaussVar = meanvalue
+  if (abs(sigma) < tol_math_check) then
+    math_sampleGaussVar = mu
   else
     if (present(width)) then
       width_ = width
@@ -867,7 +866,7 @@ real(pReal) function math_sampleGaussVar(meanvalue, stddev, width)
       if (rnd(2) <= exp(-0.5_pReal * scatter ** 2.0_pReal)) exit                                    ! test if scattered value is drawn
     enddo
 
-    math_sampleGaussVar = scatter * stddev
+    math_sampleGaussVar = scatter * sigma
   endif
 
 end function math_sampleGaussVar
@@ -1069,6 +1068,7 @@ integer pure function math_factorial(n)
 
   integer, intent(in) :: n
 
+
   math_factorial = product(math_range(n))
 
 end function math_factorial
@@ -1081,6 +1081,7 @@ integer pure function math_binomial(n,k)
 
   integer, intent(in) :: n, k
   integer :: i, k_, n_
+
 
   k_ = min(k,n-k)
   n_ = n
@@ -1096,15 +1097,13 @@ end function math_binomial
 !--------------------------------------------------------------------------------------------------
 !> @brief multinomial coefficient
 !--------------------------------------------------------------------------------------------------
-integer pure function math_multinomial(alpha)
+integer pure function math_multinomial(k)
 
-  integer, intent(in), dimension(:) :: alpha
+  integer, intent(in), dimension(:) :: k
   integer :: i
 
-  math_multinomial = 1
-  do i = 1, size(alpha)
-    math_multinomial = math_multinomial*math_binomial(sum(alpha(1:i)),alpha(i))
-  enddo
+
+  math_multinomial = product([(math_binomial(sum(k(1:i)),k(i)),i=1,size(k))])
 
 end function math_multinomial
 
@@ -1116,6 +1115,7 @@ real(pReal) pure function math_volTetrahedron(v1,v2,v3,v4)
 
   real(pReal), dimension (3), intent(in) :: v1,v2,v3,v4
   real(pReal), dimension (3,3) :: m
+
 
   m(1:3,1) = v1-v2
   m(1:3,2) = v1-v3
@@ -1289,6 +1289,9 @@ subroutine selfTest
 
   if(math_binomial(49,6) /= 13983816) &
     error stop 'math_binomial'
+
+  if(math_multinomial([1,2,3,4]) /= 12600) &
+    error stop 'math_multinomial'
 
   ijk = cshift([1,2,3],int(r*1.0e2_pReal))
   if(dNeq(math_LeviCivita(ijk(1),ijk(2),ijk(3)),+1.0_pReal)) &

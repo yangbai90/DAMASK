@@ -7,13 +7,17 @@
 module grid_mechanical_FEM
 #include <petsc/finclude/petscsnes.h>
 #include <petsc/finclude/petscdmda.h>
-  use PETScdmda
-  use PETScsnes
+  use PETScDMDA
+  use PETScSNES
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR>14) && !defined(PETSC_HAVE_MPI_F90MODULE_VISIBILITY)
+  use MPI_f08
+#endif
 
   use prec
   use parallelization
   use DAMASK_interface
   use IO
+  use HDF5
   use HDF5_utilities
   use math
   use rotations
@@ -162,7 +166,7 @@ subroutine grid_mechanical_FEM_init
   CHKERRQ(ierr)
   localK            = 0
   localK(worldrank) = grid3
-  call MPI_Allreduce(MPI_IN_PLACE,localK,worldsize,MPI_INTEGER,MPI_SUM,PETSC_COMM_WORLD,ierr)
+  call MPI_Allreduce(MPI_IN_PLACE,localK,worldsize,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
   call DMDACreate3d(PETSC_COMM_WORLD, &
          DM_BOUNDARY_PERIODIC, DM_BOUNDARY_PERIODIC, DM_BOUNDARY_PERIODIC, &
          DMDA_STENCIL_BOX, &
@@ -236,16 +240,16 @@ subroutine grid_mechanical_FEM_init
     groupHandle = HDF5_openGroup(fileHandle,'solver')
 
     call HDF5_read(P_aim,groupHandle,'P_aim',.false.)
-    call MPI_Bcast(P_aim,9,MPI_DOUBLE,0,PETSC_COMM_WORLD,ierr)
+    call MPI_Bcast(P_aim,9,MPI_DOUBLE,0,MPI_COMM_WORLD,ierr)
     if(ierr /=0) error stop 'MPI error'
     call HDF5_read(F_aim,groupHandle,'F_aim',.false.)
-    call MPI_Bcast(F_aim,9,MPI_DOUBLE,0,PETSC_COMM_WORLD,ierr)
+    call MPI_Bcast(F_aim,9,MPI_DOUBLE,0,MPI_COMM_WORLD,ierr)
     if(ierr /=0) error stop 'MPI error'
     call HDF5_read(F_aim_lastInc,groupHandle,'F_aim_lastInc',.false.)
-    call MPI_Bcast(F_aim_lastInc,9,MPI_DOUBLE,0,PETSC_COMM_WORLD,ierr)
+    call MPI_Bcast(F_aim_lastInc,9,MPI_DOUBLE,0,MPI_COMM_WORLD,ierr)
     if(ierr /=0) error stop 'MPI error'
     call HDF5_read(F_aimDot,groupHandle,'F_aimDot',.false.)
-    call MPI_Bcast(F_aimDot,9,MPI_DOUBLE,0,PETSC_COMM_WORLD,ierr)
+    call MPI_Bcast(F_aimDot,9,MPI_DOUBLE,0,MPI_COMM_WORLD,ierr)
     if(ierr /=0) error stop 'MPI error'
     call HDF5_read(F,groupHandle,'F')
     call HDF5_read(F_lastInc,groupHandle,'F_lastInc')
@@ -257,7 +261,7 @@ subroutine grid_mechanical_FEM_init
     F         = spread(spread(spread(math_I3,3,grid(1)),4,grid(2)),5,grid3)
   endif restartRead
 
-  homogenization_F0 = reshape(F_lastInc, [3,3,product(grid(1:2))*grid3])                            ! set starting condition for materialpoint_stressAndItsTangent
+  homogenization_F0 = reshape(F_lastInc, [3,3,product(grid(1:2))*grid3])                            ! set starting condition for homogenization_mechanical_response
   call utilities_updateCoords(F)
   call utilities_constitutiveResponse(P_current,P_av,C_volAvg,devNull, &                            ! stress field, stress avg, global average of stiffness and (min+max)/2
                                       F, &                                                          ! target F
@@ -270,10 +274,10 @@ subroutine grid_mechanical_FEM_init
   restartRead2: if (interface_restartInc > 0) then
     print'(a,i0,a)', ' reading more restart data of increment ', interface_restartInc, ' from file'
     call HDF5_read(C_volAvg,groupHandle,'C_volAvg',.false.)
-    call MPI_Bcast(C_volAvg,81,MPI_DOUBLE,0,PETSC_COMM_WORLD,ierr)
+    call MPI_Bcast(C_volAvg,81,MPI_DOUBLE,0,MPI_COMM_WORLD,ierr)
     if(ierr /=0) error stop 'MPI error'
     call HDF5_read(C_volAvgLastInc,groupHandle,'C_volAvgLastInc',.false.)
-    call MPI_Bcast(C_volAvgLastInc,81,MPI_DOUBLE,0,PETSC_COMM_WORLD,ierr)
+    call MPI_Bcast(C_volAvgLastInc,81,MPI_DOUBLE,0,MPI_COMM_WORLD,ierr)
     if(ierr /=0) error stop 'MPI error'
 
     call HDF5_closeGroup(groupHandle)
@@ -486,8 +490,8 @@ subroutine converged(snes_local,PETScIter,devNull1,devNull2,fnorm,reason,dummy,i
     BCTol
 
   err_div = fnorm*sqrt(wgt)*geomSize(1)/scaledGeomSize(1)/detJ
-  divTol = max(maxval(abs(P_av))*num%eps_div_rtol   ,num%eps_div_atol)
-  BCTol  = max(maxval(abs(P_av))*num%eps_stress_rtol,num%eps_stress_atol)
+  divTol = max(maxval(abs(P_av))*num%eps_div_rtol, num%eps_div_atol)
+  BCTol  = max(maxval(abs(P_av))*num%eps_stress_rtol, num%eps_stress_atol)
 
   if ((totalIter >= num%itmin .and. all([err_div/divTol, err_BC/BCTol] < 1.0_pReal)) &
        .or. terminallyIll) then
@@ -498,8 +502,6 @@ subroutine converged(snes_local,PETScIter,devNull1,devNull2,fnorm,reason,dummy,i
     reason = 0
   endif
 
-!--------------------------------------------------------------------------------------------------
-! report
   print'(1/,a)', ' ... reporting .............................................................'
   print'(1/,a,f12.2,a,es8.2,a,es9.2,a)', ' error divergence = ', &
           err_div/divTol,  ' (',err_div,' / m, tol = ',divTol,')'
@@ -567,7 +569,7 @@ subroutine formResidual(da_local,x_local, &
   call utilities_constitutiveResponse(P_current,&
                                       P_av,C_volAvg,devNull, &
                                       F,params%timeinc,params%rotation_BC)
-  call MPI_Allreduce(MPI_IN_PLACE,terminallyIll,1,MPI_LOGICAL,MPI_LOR,PETSC_COMM_WORLD,ierr)
+  call MPI_Allreduce(MPI_IN_PLACE,terminallyIll,1,MPI_LOGICAL,MPI_LOR,MPI_COMM_WORLD,ierr)
 
 !--------------------------------------------------------------------------------------------------
 ! stress BC handling
