@@ -209,7 +209,7 @@ SpectralRuntime:
     - cd $LOCAL_HOME/performance                                                                    # location of old results
     - git checkout .                                                                                # undo any changes (i.e. run time data from non-development branch)
     - cd $DAMASKROOT/PRIVATE/testing
-    - SpectralAll_runtime/test.py -d $LOCAL_HOME/performance
+    - ./runtime.py --results ${LOCAL_HOME}/performance --damask_root ${DAMASKROOT} --tag ${CI_COMMIT_SHA}
   except:
     - master
     - release
@@ -224,24 +224,13 @@ source_distribution:
     - master
     - release
 
-library_documentation:
-  stage: deploy
-  script:
-    - cd $DAMASKROOT/PRIVATE/documenting/sphinx
-    - make html
-  except:
-    - master
-    - release
-
 ##################################################################################################
 backup_runtime_measurement:
   stage: backup
   script:
     - cd $LOCAL_HOME/performance                                                                    # location of new runtime results
     - git commit -am"${CI_PIPELINE_ID}_${CI_COMMIT_SHA}"
-    - mkdir $BACKUP/${CI_PIPELINE_ID}_${CI_COMMIT_SHA}
-    - mv $LOCAL_HOME/performance/time.png $BACKUP/${CI_PIPELINE_ID}_${CI_COMMIT_SHA}/
-    - mv $LOCAL_HOME/performance/memory.png $BACKUP/${CI_PIPELINE_ID}_${CI_COMMIT_SHA}/
+    - git push
   only:
     - development
 
