@@ -29,15 +29,6 @@ module spectral_utilities
   include 'fftw3-mpi.f03'
 
 !--------------------------------------------------------------------------------------------------
-! field labels information
-  enum, bind(c); enumerator :: &
-    FIELD_UNDEFINED_ID, &
-    FIELD_MECH_ID, &
-    FIELD_THERMAL_ID, &
-    FIELD_DAMAGE_ID
-  end enum
-
-!--------------------------------------------------------------------------------------------------
 ! grid related information information
   real(pReal), protected,  public                :: wgt                                             !< weighting factor 1/Nelems
   integer,     protected,  public                :: grid1Red                                        !< grid(1)/2
@@ -139,11 +130,7 @@ module spectral_utilities
     utilities_calculateRate, &
     utilities_forwardField, &
     utilities_updateCoords, &
-    utilities_saveReferenceStiffness, &
-    FIELD_UNDEFINED_ID, &
-    FIELD_MECH_ID, &
-    FIELD_THERMAL_ID, &
-    FIELD_DAMAGE_ID
+    utilities_saveReferenceStiffness
 
 contains
 
@@ -388,21 +375,24 @@ subroutine utilities_updateGamma(C)
     gamma_hat =  cmplx(0.0_pReal,0.0_pReal,pReal)                                                   ! for the singular point and any non invertible A
     do k = grid3Offset+1, grid3Offset+grid3; do j = 1, grid(2); do i = 1, grid1Red
       if (any([i,j,k] /= 1)) then                                                                   ! singular point at xi=(0.0,0.0,0.0) i.e. i=j=k=1
-        forall(l = 1:3, m = 1:3) &
+        do concurrent (l = 1:3, m = 1:3)
           xiDyad_cmplx(l,m) = conjg(-xi1st(l,i,j,k-grid3Offset))*xi1st(m,i,j,k-grid3Offset)
-        forall(l = 1:3, m = 1:3) &
+        end do
+        do concurrent(l = 1:3, m = 1:3)
           temp33_complex(l,m) = sum(cmplx(C_ref(l,1:3,m,1:3),0.0_pReal)*xiDyad_cmplx)
+        end do
         A(1:3,1:3) = temp33_complex%re; A(4:6,4:6) =  temp33_complex%re
         A(1:3,4:6) = temp33_complex%im; A(4:6,1:3) = -temp33_complex%im
         if (abs(math_det33(A(1:3,1:3))) > 1e-16) then
           call math_invert(A_inv, err, A)
           temp33_complex = cmplx(A_inv(1:3,1:3),A_inv(1:3,4:6),pReal)
-          forall(l=1:3, m=1:3, n=1:3, o=1:3) &
+          do concurrent(l=1:3, m=1:3, n=1:3, o=1:3)
             gamma_hat(l,m,n,o,i,j,k-grid3Offset) = temp33_complex(l,n)* &
                                                    conjg(-xi1st(o,i,j,k-grid3Offset))*xi1st(m,i,j,k-grid3Offset)
-        endif
-      endif
-    enddo; enddo; enddo
+          end do
+        end if
+      end if
+    end do; end do; end do
   endif
 
 end subroutine utilities_updateGamma
@@ -505,32 +495,37 @@ subroutine utilities_fourierGammaConvolution(fieldAim)
   memoryEfficient: if (num%memory_efficient) then
     do k = 1, grid3; do j = 1, grid(2); do i = 1, grid1Red
       if (any([i,j,k+grid3Offset] /= 1)) then                                                       ! singular point at xi=(0.0,0.0,0.0) i.e. i=j=k=1
-        forall(l = 1:3, m = 1:3) &
+        do concurrent(l = 1:3, m = 1:3)
           xiDyad_cmplx(l,m) = conjg(-xi1st(l,i,j,k))*xi1st(m,i,j,k)
-        forall(l = 1:3, m = 1:3) &
+        end do
+        do concurrent(l = 1:3, m = 1:3)
           temp33_complex(l,m) = sum(cmplx(C_ref(l,1:3,m,1:3),0.0_pReal)*xiDyad_cmplx)
+        end do
         A(1:3,1:3) = temp33_complex%re; A(4:6,4:6) =  temp33_complex%re
         A(1:3,4:6) = temp33_complex%im; A(4:6,1:3) = -temp33_complex%im
         if (abs(math_det33(A(1:3,1:3))) > 1e-16) then
           call math_invert(A_inv, err, A)
           temp33_complex = cmplx(A_inv(1:3,1:3),A_inv(1:3,4:6),pReal)
-          forall(l=1:3, m=1:3, n=1:3, o=1:3) &
+          do concurrent(l=1:3, m=1:3, n=1:3, o=1:3)
             gamma_hat(l,m,n,o,1,1,1) =  temp33_complex(l,n)*conjg(-xi1st(o,i,j,k))*xi1st(m,i,j,k)
+          end do
         else
           gamma_hat(1:3,1:3,1:3,1:3,1,1,1) = cmplx(0.0_pReal,0.0_pReal,pReal)
-        endif
-        forall(l = 1:3, m = 1:3) &
+        end if
+        do concurrent(l = 1:3, m = 1:3)
           temp33_Complex(l,m) = sum(gamma_hat(l,m,1:3,1:3,1,1,1)*tensorField_fourier(1:3,1:3,i,j,k))
+        end do
         tensorField_fourier(1:3,1:3,i,j,k) = temp33_Complex
-      endif
-    enddo; enddo; enddo
+      end if
+    end do; end do; end do
   else memoryEfficient
     do k = 1, grid3;  do j = 1, grid(2);  do i = 1,grid1Red
-      forall(l = 1:3, m = 1:3) &
+      do concurrent(l = 1:3, m = 1:3)
         temp33_Complex(l,m) = sum(gamma_hat(l,m,1:3,1:3,i,j,k) * tensorField_fourier(1:3,1:3,i,j,k))
+      end do
       tensorField_fourier(1:3,1:3,i,j,k) = temp33_Complex
-    enddo; enddo; enddo
-  endif memoryEfficient
+    end do; end do; end do
+  end if memoryEfficient
 
   if (grid3Offset == 0) tensorField_fourier(1:3,1:3,1,1,1) = cmplx(fieldAim/wgt,0.0_pReal,pReal)
 
@@ -540,19 +535,19 @@ end subroutine utilities_fourierGammaConvolution
 !--------------------------------------------------------------------------------------------------
 !> @brief doing convolution DamageGreenOp_hat * field_real
 !--------------------------------------------------------------------------------------------------
-subroutine utilities_fourierGreenConvolution(D_ref, mobility_ref, deltaT)
+subroutine utilities_fourierGreenConvolution(D_ref, mu_ref, Delta_t)
 
   real(pReal), dimension(3,3), intent(in) :: D_ref
-  real(pReal),                 intent(in) :: mobility_ref, deltaT
+  real(pReal),                 intent(in) :: mu_ref, Delta_t
   complex(pReal)                          :: GreenOp_hat
   integer                                 :: i, j, k
 
 !--------------------------------------------------------------------------------------------------
 ! do the actual spectral method calculation
   do k = 1, grid3; do j = 1, grid(2) ;do i = 1, grid1Red
-    GreenOp_hat =  cmplx(1.0_pReal,0.0_pReal,pReal)/ &
-                   (cmplx(mobility_ref,0.0_pReal,pReal) + cmplx(deltaT,0.0_pReal)*&
-                    sum(conjg(xi1st(1:3,i,j,k))* matmul(cmplx(D_ref,0.0_pReal),xi1st(1:3,i,j,k))))
+    GreenOp_hat = cmplx(1.0_pReal,0.0_pReal,pReal) &
+                / (cmplx(mu_ref,0.0_pReal,pReal) + cmplx(Delta_t,0.0_pReal) &
+                   * sum(conjg(xi1st(1:3,i,j,k))* matmul(cmplx(D_ref,0.0_pReal),xi1st(1:3,i,j,k))))
     scalarField_fourier(i,j,k) = scalarField_fourier(i,j,k)*GreenOp_hat
   enddo; enddo; enddo
 
@@ -578,22 +573,22 @@ real(pReal) function utilities_divergenceRMS()
   do k = 1, grid3; do j = 1, grid(2)
     do i = 2, grid1Red -1                                                                           ! Has somewhere a conj. complex counterpart. Therefore count it twice.
       utilities_divergenceRMS = utilities_divergenceRMS &
-            + 2.0_pReal*(sum (real(matmul(tensorField_fourier(1:3,1:3,i,j,k),&                      ! (sqrt(real(a)**2 + aimag(a)**2))**2 = real(a)**2 + aimag(a)**2. do not take square root and square again
-                                          conjg(-xi1st(1:3,i,j,k))*rescaledGeom))**2.0_pReal)&      ! --> sum squared L_2 norm of vector
+            + 2.0_pReal*(sum (real(matmul(tensorField_fourier(1:3,1:3,i,j,k), &                     ! (sqrt(real(a)**2 + aimag(a)**2))**2 = real(a)**2 + aimag(a)**2, i.e. do not take square root and square again
+                                          conjg(-xi1st(1:3,i,j,k))*rescaledGeom))**2) &             ! --> sum squared L_2 norm of vector
                         +sum(aimag(matmul(tensorField_fourier(1:3,1:3,i,j,k),&
-                                          conjg(-xi1st(1:3,i,j,k))*rescaledGeom))**2.0_pReal))
+                                          conjg(-xi1st(1:3,i,j,k))*rescaledGeom))**2))
     enddo
     utilities_divergenceRMS = utilities_divergenceRMS &                                             ! these two layers (DC and Nyquist) do not have a conjugate complex counterpart (if grid(1) /= 1)
                + sum( real(matmul(tensorField_fourier(1:3,1:3,1       ,j,k), &
-                                  conjg(-xi1st(1:3,1,j,k))*rescaledGeom))**2.0_pReal) &
+                                  conjg(-xi1st(1:3,1,j,k))*rescaledGeom))**2) &
                + sum(aimag(matmul(tensorField_fourier(1:3,1:3,1       ,j,k), &
-                                  conjg(-xi1st(1:3,1,j,k))*rescaledGeom))**2.0_pReal) &
+                                  conjg(-xi1st(1:3,1,j,k))*rescaledGeom))**2) &
                + sum( real(matmul(tensorField_fourier(1:3,1:3,grid1Red,j,k), &
-                                  conjg(-xi1st(1:3,grid1Red,j,k))*rescaledGeom))**2.0_pReal) &
+                                  conjg(-xi1st(1:3,grid1Red,j,k))*rescaledGeom))**2) &
                + sum(aimag(matmul(tensorField_fourier(1:3,1:3,grid1Red,j,k), &
-                                  conjg(-xi1st(1:3,grid1Red,j,k))*rescaledGeom))**2.0_pReal)
+                                  conjg(-xi1st(1:3,grid1Red,j,k))*rescaledGeom))**2)
   enddo; enddo
-  if (grid(1) == 1) utilities_divergenceRMS = utilities_divergenceRMS * 0.5_pReal                    ! counted twice in case of grid(1) == 1
+  if (grid(1) == 1) utilities_divergenceRMS = utilities_divergenceRMS * 0.5_pReal                   ! counted twice in case of grid(1) == 1
   call MPI_Allreduce(MPI_IN_PLACE,utilities_divergenceRMS,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD,ierr)
   if (ierr /=0) error stop 'MPI error'
   utilities_divergenceRMS = sqrt(utilities_divergenceRMS) * wgt                                     ! RMS in real space calculated with Parsevals theorem from Fourier space
@@ -630,7 +625,7 @@ real(pReal) function utilities_curlRMS()
                              -tensorField_fourier(l,1,i,j,k)*xi1st(2,i,j,k)*rescaledGeom(2))
       enddo
       utilities_curlRMS = utilities_curlRMS &
-                        +2.0_pReal*sum(curl_fourier%re**2.0_pReal+curl_fourier%im**2.0_pReal)       ! Has somewhere a conj. complex counterpart. Therefore count it twice.
+                        +2.0_pReal*sum(curl_fourier%re**2+curl_fourier%im**2)                       ! Has somewhere a conj. complex counterpart. Therefore count it twice.
     enddo
     do l = 1, 3
        curl_fourier = (+tensorField_fourier(l,3,1,j,k)*xi1st(2,1,j,k)*rescaledGeom(2) &
@@ -641,7 +636,7 @@ real(pReal) function utilities_curlRMS()
                        -tensorField_fourier(l,1,1,j,k)*xi1st(2,1,j,k)*rescaledGeom(2))
     enddo
     utilities_curlRMS = utilities_curlRMS &
-                      + sum(curl_fourier%re**2.0_pReal + curl_fourier%im**2.0_pReal)                ! this layer (DC) does not have a conjugate complex counterpart (if grid(1) /= 1)
+                      + sum(curl_fourier%re**2 + curl_fourier%im**2)                                ! this layer (DC) does not have a conjugate complex counterpart (if grid(1) /= 1)
     do l = 1, 3
       curl_fourier = (+tensorField_fourier(l,3,grid1Red,j,k)*xi1st(2,grid1Red,j,k)*rescaledGeom(2) &
                       -tensorField_fourier(l,2,grid1Red,j,k)*xi1st(3,grid1Red,j,k)*rescaledGeom(3))
@@ -651,13 +646,13 @@ real(pReal) function utilities_curlRMS()
                       -tensorField_fourier(l,1,grid1Red,j,k)*xi1st(2,grid1Red,j,k)*rescaledGeom(2))
     enddo
     utilities_curlRMS = utilities_curlRMS &
-                      + sum(curl_fourier%re**2.0_pReal + curl_fourier%im**2.0_pReal)                ! this layer (Nyquist) does not have a conjugate complex counterpart (if grid(1) /= 1)
+                      + sum(curl_fourier%re**2 + curl_fourier%im**2)                                ! this layer (Nyquist) does not have a conjugate complex counterpart (if grid(1) /= 1)
   enddo; enddo
 
   call MPI_Allreduce(MPI_IN_PLACE,utilities_curlRMS,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD,ierr)
   if (ierr /=0) error stop 'MPI error'
   utilities_curlRMS = sqrt(utilities_curlRMS) * wgt
-  if (grid(1) == 1) utilities_curlRMS = utilities_curlRMS * 0.5_pReal                                ! counted twice in case of grid(1) == 1
+  if (grid(1) == 1) utilities_curlRMS = utilities_curlRMS * 0.5_pReal                               ! counted twice in case of grid(1) == 1
 
 end function utilities_curlRMS
 
@@ -836,13 +831,13 @@ subroutine utilities_constitutiveResponse(P,P_av,C_volAvg,C_minmaxAvg,&
   dPdF_min = huge(1.0_pReal)
   dPdF_norm_min = huge(1.0_pReal)
   do i = 1, product(grid(1:2))*grid3
-    if (dPdF_norm_max < sum(homogenization_dPdF(1:3,1:3,1:3,1:3,i)**2.0_pReal)) then
+    if (dPdF_norm_max < sum(homogenization_dPdF(1:3,1:3,1:3,1:3,i)**2)) then
       dPdF_max = homogenization_dPdF(1:3,1:3,1:3,1:3,i)
-      dPdF_norm_max = sum(homogenization_dPdF(1:3,1:3,1:3,1:3,i)**2.0_pReal)
+      dPdF_norm_max = sum(homogenization_dPdF(1:3,1:3,1:3,1:3,i)**2)
     endif
-    if (dPdF_norm_min > sum(homogenization_dPdF(1:3,1:3,1:3,1:3,i)**2.0_pReal)) then
+    if (dPdF_norm_min > sum(homogenization_dPdF(1:3,1:3,1:3,1:3,i)**2)) then
       dPdF_min = homogenization_dPdF(1:3,1:3,1:3,1:3,i)
-      dPdF_norm_min = sum(homogenization_dPdF(1:3,1:3,1:3,1:3,i)**2.0_pReal)
+      dPdF_norm_min = sum(homogenization_dPdF(1:3,1:3,1:3,1:3,i)**2)
     endif
   enddo
 

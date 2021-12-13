@@ -3,7 +3,7 @@ import shlex
 import re
 from pathlib import Path
 
-_marc_version = 2021.2
+_marc_version = '2021.3.1'
 _marc_root = '/opt/msc'
 _damask_root = str(Path(__file__).parents[3])
 
@@ -16,7 +16,7 @@ class Marc:
 
         Parameters
         ----------
-        version : float
+        version : string
             Marc version
 
         """
