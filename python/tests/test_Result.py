@@ -102,6 +102,9 @@ class TestResult:
         with pytest.raises(AttributeError):
             default.view('invalid',True)
 
+    def test_add_invalid(self,default):
+        default.add_absolute('xxxx')
+
     def test_add_absolute(self,default):
         default.add_absolute('F_e')
         in_memory = np.abs(default.place('F_e'))
@@ -364,13 +367,13 @@ class TestResult:
 
     @pytest.mark.parametrize('mode',['cell','node'])
     def test_coordinates(self,default,mode):
-         if   mode == 'cell':
-             a = grid_filters.coordinates0_point(default.cells,default.size,default.origin)
-             b = default.coordinates0_point.reshape(tuple(default.cells)+(3,),order='F')
-         elif mode == 'node':
-             a = grid_filters.coordinates0_node(default.cells,default.size,default.origin)
-             b = default.coordinates0_node.reshape(tuple(default.cells+1)+(3,),order='F')
-         assert np.allclose(a,b)
+        if   mode == 'cell':
+            a = grid_filters.coordinates0_point(default.cells,default.size,default.origin)
+            b = default.coordinates0_point.reshape(tuple(default.cells)+(3,),order='F')
+        elif mode == 'node':
+            a = grid_filters.coordinates0_node(default.cells,default.size,default.origin)
+            b = default.coordinates0_node.reshape(tuple(default.cells+1)+(3,),order='F')
+        assert np.allclose(a,b)
 
     @pytest.mark.parametrize('output',['F','*',['P'],['P','F']],ids=range(4))
     @pytest.mark.parametrize('fname',['12grains6x7x8_tensionY.hdf5'],ids=range(1))
@@ -418,7 +421,7 @@ class TestResult:
     def test_XDMF_datatypes(self,tmp_path,single_phase,update,ref_path):
         for shape in [('scalar',()),('vector',(3,)),('tensor',(3,3)),('matrix',(12,))]:
             for dtype in ['f4','f8','i1','i2','i4','i8','u1','u2','u4','u8']:
-                 single_phase.add_calculation(f"np.ones(np.shape(#F#)[0:1]+{shape[1]},'{dtype}')",f'{shape[0]}_{dtype}')
+                single_phase.add_calculation(f"np.ones(np.shape(#F#)[0:1]+{shape[1]},'{dtype}')",f'{shape[0]}_{dtype}')
         fname = os.path.splitext(os.path.basename(single_phase.fname))[0]+'.xdmf'
         os.chdir(tmp_path)
         single_phase.export_XDMF()

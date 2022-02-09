@@ -287,7 +287,7 @@ class TestOrientation:
     @pytest.mark.parametrize('family',crystal_families)
     @pytest.mark.parametrize('proper',[True,False])
     def test_in_SST(self,family,proper):
-          assert Orientation(family=family).in_SST(np.zeros(3),proper)
+        assert Orientation(family=family).in_SST(np.zeros(3),proper)
 
     @pytest.mark.parametrize('function',['in_SST','IPF_color'])
     def test_invalid_argument(self,function):
@@ -363,6 +363,11 @@ class TestOrientation:
                 table = Table(P.reshape(-1,9),{'Schmid':(3,3,)})
                 table.save(reference)
             assert np.allclose(P,Table.load(reference).get('Schmid'))
+
+    def test_Schmid_invalid(self):
+        with pytest.raises(KeyError):
+            Orientation(lattice='fcc').Schmid()
+
 
 ### vectorization tests ###
 
@@ -505,3 +510,7 @@ class TestOrientation:
         for loc in np.random.randint(0,blend,(10,len(blend))):
             assert np.allclose(o[tuple(loc[:len(o.shape)])].to_pole(uvw=v[tuple(loc[-len(v.shape[:-1]):])]),
                                o.to_pole(uvw=v)[tuple(loc)])
+
+    def test_mul_invalid(self):
+        with pytest.raises(TypeError):
+            Orientation.from_random(lattice='cF')*np.ones(3)

@@ -78,7 +78,7 @@ program DAMASK_mesh
   type(tLoadCase), allocatable, dimension(:) :: loadCases                                           !< array of all load cases
   type(tSolutionState), allocatable, dimension(:) :: solres
   PetscInt :: faceSet, currentFaceSet, dimPlex
-  PetscErrorCode :: ierr
+  PetscErrorCode :: err_PETSc
   integer(kind(COMPONENT_UNDEFINED_ID)) :: ID
   external :: &
     quit
@@ -98,8 +98,8 @@ program DAMASK_mesh
   if (maxCutBack < 0) call IO_error(301,ext_msg='maxCutBack')
 
 ! reading basic information from load case file and allocate data structure containing load cases
-  call DMGetDimension(geomMesh,dimPlex,ierr)                                                        !< dimension of mesh (2D or 3D)
-  CHKERRA(ierr)
+  call DMGetDimension(geomMesh,dimPlex,err_PETSc)                                                   !< dimension of mesh (2D or 3D)
+  CHKERRA(err_PETSc)
   allocate(solres(1))
 
 !--------------------------------------------------------------------------------------------------
@@ -307,9 +307,11 @@ program DAMASK_mesh
           guess = .true.                                                                            ! start guessing after first converged (sub)inc
           timeIncOld = timeinc
         end if
-        if (.not. cutBack .and. worldrank == 0) &
+        if (.not. cutBack .and. worldrank == 0) then
           write(statUnit,*) totalIncsCounter, time, cutBackLevel, &
                             solres%converged, solres%iterationsNeeded                               ! write statistics about accepted solution
+          flush(statUnit)
+        endif
       end do subStepLooping
 
       cutBackLevel = max(0, cutBackLevel - 1)                                                       ! try half number of subincs next inc
