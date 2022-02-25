@@ -52,10 +52,11 @@ module subroutine thermal_init()
   allocate(current(configHomogenizations%length))
 
   do ho = 1, configHomogenizations%length
-    allocate(current(ho)%T(count(material_homogenizationID==ho)), source=300.0_pReal)
+    allocate(current(ho)%T(count(material_homogenizationID==ho)), source=T_ROOM)
     allocate(current(ho)%dot_T(count(material_homogenizationID==ho)), source=0.0_pReal)
     configHomogenization => configHomogenizations%get(ho)
     associate(prm => param(ho))
+
       if (configHomogenization%contains('thermal')) then
         configHomogenizationThermal => configHomogenization%get('thermal')
 #if defined (__GFORTRAN__)
@@ -63,13 +64,22 @@ module subroutine thermal_init()
 #else
         prm%output = configHomogenizationThermal%get_as1dString('output',defaultVal=emptyStringArray)
 #endif
+        select case (configHomogenizationThermal%get_asString('type'))
+
+          case ('pass')
+            call pass_init()
+
+          case ('isothermal')
+            call isotemperature_init()
+
+        end select
       else
         prm%output = emptyStringArray
       end if
+
     end associate
   end do
 
-  call pass_init()
 
 end subroutine thermal_init
 
@@ -105,12 +115,10 @@ module function homogenization_mu_T(ce) result(mu)
   integer :: co
 
 
-  mu = phase_mu_T(1,ce)
+  mu = phase_mu_T(1,ce)*material_v(1,ce)
   do co = 2, homogenization_Nconstituents(material_homogenizationID(ce))
-    mu = mu + phase_mu_T(co,ce)
+    mu = mu + phase_mu_T(co,ce)*material_v(co,ce)
   end do
-
-  mu = mu / real(homogenization_Nconstituents(material_homogenizationID(ce)),pReal)
 
 end function homogenization_mu_T
 
@@ -126,12 +134,10 @@ module function homogenization_K_T(ce) result(K)
   integer :: co
 
 
-  K = phase_K_T(1,ce)
+  K = phase_K_T(1,ce)*material_v(1,ce)
   do co = 2, homogenization_Nconstituents(material_homogenizationID(ce))
-    K = K + phase_K_T(co,ce)
+    K = K + phase_K_T(co,ce)*material_v(co,ce)
   end do
-
-  K = K / real(homogenization_Nconstituents(material_homogenizationID(ce)),pReal)
 
 end function homogenization_K_T
 
@@ -147,12 +153,10 @@ module function homogenization_f_T(ce) result(f)
   integer :: co
 
 
-  f = phase_f_T(material_phaseID(1,ce),material_phaseEntry(1,ce))
+  f = phase_f_T(material_phaseID(1,ce),material_phaseEntry(1,ce))*material_v(1,ce)
   do co = 2, homogenization_Nconstituents(material_homogenizationID(ce))
-    f = f + phase_f_T(material_phaseID(co,ce),material_phaseEntry(co,ce))
+    f = f + phase_f_T(material_phaseID(co,ce),material_phaseEntry(co,ce))*material_v(co,ce)
   end do
-
-  f = f/real(homogenization_Nconstituents(material_homogenizationID(ce)),pReal)
 
 end function homogenization_f_T
 

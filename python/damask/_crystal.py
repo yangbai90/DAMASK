@@ -2,10 +2,11 @@ from typing import Union, Dict, List, Tuple
 
 import numpy as np
 
+from ._typehints import FloatSequence, CrystalFamily, CrystalLattice, CrystalKinematics
 from . import util
 from . import Rotation
 
-lattice_symmetries = {
+lattice_symmetries: Dict[CrystalLattice, CrystalFamily] = {
                 'aP': 'triclinic',
 
                 'mP': 'monoclinic',
@@ -28,16 +29,38 @@ lattice_symmetries = {
 
 
 class Crystal():
-    """Crystal lattice."""
+    """
+    Representation of a crystal as (general) crystal family or (more specific) as a scaled Bravais lattice.
 
-    def __init__(self,*,
-                 family = None,
-                 lattice = None,
+    Examples
+    --------
+    Cubic crystal family:
+
+    >>> import damask
+    >>> cubic = damask.Crystal(family='cubic')
+    >>> cubic
+    Crystal family: cubic
+
+    Body-centered cubic Bravais lattice with parameters of iron:
+
+    >>> import damask
+    >>> Fe = damask.Crystal(lattice='cI', a=287e-12)
+    >>> Fe
+    Crystal family: cubic
+    Bravais lattice: cI
+    a=2.87e-10 m, b=2.87e-10 m, c=2.87e-10 m
+    α=90°, β=90°, γ=90°
+
+    """
+
+    def __init__(self, *,
+                 family: CrystalFamily = None,
+                 lattice: CrystalLattice = None,
                  a: float = None, b: float = None, c: float = None,
                  alpha: float = None, beta: float = None, gamma: float = None,
                  degrees: bool = False):
         """
-        Representation of crystal in terms of crystal family or Bravais lattice.
+        New representation of a crystal.
 
         Parameters
         ----------
@@ -113,10 +136,10 @@ class Crystal():
         """Represent."""
         family = f'Crystal family: {self.family}'
         return family if self.lattice is None else \
-               '\n'.join([family,
-                          f'Bravais lattice: {self.lattice}',
-                          'a={:.5g}m, b={:.5g}m, c={:.5g}m'.format(*self.parameters[:3]),
-                          'α={:.5g}°, β={:.5g}°, γ={:.5g}°'.format(*np.degrees(self.parameters[3:]))])
+               util.srepr([family,
+                           f'Bravais lattice: {self.lattice}',
+                           'a={:.5g} m, b={:.5g} m, c={:.5g} m'.format(*self.parameters[:3]),
+                           'α={:.5g}°, β={:.5g}°, γ={:.5g}°'.format(*np.degrees(self.parameters[3:]))])
 
 
     def __eq__(self,
@@ -130,9 +153,8 @@ class Crystal():
             Crystal to check for equality.
 
         """
-        if not isinstance(other, Crystal):
-            return NotImplemented
-        return self.lattice == other.lattice and \
+        return NotImplemented if not isinstance(other, Crystal) else \
+               self.lattice == other.lattice and \
                self.parameters == other.parameters and \
                self.family == other.family
 
@@ -208,7 +230,7 @@ class Crystal():
         ...    }
 
         """
-        _basis  = {
+        _basis: Dict[CrystalFamily, Dict[str, np.ndarray]]  = {
             'cubic':    {'improper':np.array([ [-1.            ,  0.            ,  1. ],
                                                [ np.sqrt(2.)   , -np.sqrt(2.)   ,  0. ],
                                                [ 0.            ,  np.sqrt(3.)   ,  0. ] ]),
@@ -241,6 +263,76 @@ class Crystal():
                                                [ 0., 1., 0.] ]),
                         }}
         return _basis.get(self.family, None)
+
+
+    @property
+    def symmetry_operations(self) -> Rotation:
+        """Symmetry operations as Rotations."""
+        _symmetry_operations: Dict[CrystalFamily, List]  = {
+            'cubic':         [
+                              [ 1.0,            0.0,            0.0,            0.0            ],
+                              [ 0.0,            1.0,            0.0,            0.0            ],
+                              [ 0.0,            0.0,            1.0,            0.0            ],
+                              [ 0.0,            0.0,            0.0,            1.0            ],
+                              [ 0.0,            0.0,            0.5*np.sqrt(2), 0.5*np.sqrt(2) ],
+                              [ 0.0,            0.0,            0.5*np.sqrt(2),-0.5*np.sqrt(2) ],
+                              [ 0.0,            0.5*np.sqrt(2), 0.0,            0.5*np.sqrt(2) ],
+                              [ 0.0,            0.5*np.sqrt(2), 0.0,           -0.5*np.sqrt(2) ],
+                              [ 0.0,            0.5*np.sqrt(2),-0.5*np.sqrt(2), 0.0            ],
+                              [ 0.0,           -0.5*np.sqrt(2),-0.5*np.sqrt(2), 0.0            ],
+                              [ 0.5,            0.5,            0.5,            0.5            ],
+                              [-0.5,            0.5,            0.5,            0.5            ],
+                              [-0.5,            0.5,            0.5,           -0.5            ],
+                              [-0.5,            0.5,           -0.5,            0.5            ],
+                              [-0.5,           -0.5,            0.5,            0.5            ],
+                              [-0.5,           -0.5,            0.5,           -0.5            ],
+                              [-0.5,           -0.5,           -0.5,            0.5            ],
+                              [-0.5,            0.5,           -0.5,           -0.5            ],
+                              [-0.5*np.sqrt(2), 0.0,            0.0,            0.5*np.sqrt(2) ],
+                              [ 0.5*np.sqrt(2), 0.0,            0.0,            0.5*np.sqrt(2) ],
+                              [-0.5*np.sqrt(2), 0.0,            0.5*np.sqrt(2), 0.0            ],
+                              [-0.5*np.sqrt(2), 0.0,           -0.5*np.sqrt(2), 0.0            ],
+                              [-0.5*np.sqrt(2), 0.5*np.sqrt(2), 0.0,            0.0            ],
+                              [-0.5*np.sqrt(2),-0.5*np.sqrt(2), 0.0,            0.0            ],
+                            ],
+            'hexagonal':    [
+                              [ 1.0,            0.0,            0.0,            0.0            ],
+                              [-0.5*np.sqrt(3), 0.0,            0.0,           -0.5            ],
+                              [ 0.5,            0.0,            0.0,            0.5*np.sqrt(3) ],
+                              [ 0.0,            0.0,            0.0,            1.0            ],
+                              [-0.5,            0.0,            0.0,            0.5*np.sqrt(3) ],
+                              [-0.5*np.sqrt(3), 0.0,            0.0,            0.5            ],
+                              [ 0.0,            1.0,            0.0,            0.0            ],
+                              [ 0.0,           -0.5*np.sqrt(3), 0.5,            0.0            ],
+                              [ 0.0,            0.5,           -0.5*np.sqrt(3), 0.0            ],
+                              [ 0.0,            0.0,            1.0,            0.0            ],
+                              [ 0.0,           -0.5,           -0.5*np.sqrt(3), 0.0            ],
+                              [ 0.0,            0.5*np.sqrt(3), 0.5,            0.0            ],
+                            ],
+            'tetragonal':   [
+                              [ 1.0,            0.0,            0.0,            0.0            ],
+                              [ 0.0,            1.0,            0.0,            0.0            ],
+                              [ 0.0,            0.0,            1.0,            0.0            ],
+                              [ 0.0,            0.0,            0.0,            1.0            ],
+                              [ 0.0,            0.5*np.sqrt(2), 0.5*np.sqrt(2), 0.0            ],
+                              [ 0.0,           -0.5*np.sqrt(2), 0.5*np.sqrt(2), 0.0            ],
+                              [ 0.5*np.sqrt(2), 0.0,            0.0,            0.5*np.sqrt(2) ],
+                              [-0.5*np.sqrt(2), 0.0,            0.0,            0.5*np.sqrt(2) ],
+                            ],
+            'orthorhombic': [
+                              [ 1.0,0.0,0.0,0.0 ],
+                              [ 0.0,1.0,0.0,0.0 ],
+                              [ 0.0,0.0,1.0,0.0 ],
+                              [ 0.0,0.0,0.0,1.0 ],
+                            ],
+            'monoclinic':   [
+                              [ 1.0,0.0,0.0,0.0 ],
+                              [ 0.0,0.0,1.0,0.0 ],
+                            ],
+            'triclinic':    [
+                              [ 1.0,0.0,0.0,0.0 ],
+                            ]}
+        return Rotation.from_quaternion(_symmetry_operations[self.family],accept_homomorph=True)
 
 
     @property
@@ -315,58 +407,76 @@ class Crystal():
                                               self.lattice[-1],None),dtype=float)
 
     def to_lattice(self, *,
-                   direction: np.ndarray = None,
-                   plane: np.ndarray = None) -> np.ndarray:
+                   direction: FloatSequence = None,
+                   plane: FloatSequence = None) -> np.ndarray:
         """
         Calculate lattice vector corresponding to crystal frame direction or plane normal.
 
         Parameters
         ----------
-        direction|plane : numpy.ndarray of shape (...,3)
-            Vector along direction or plane normal.
+        direction|plane : numpy.ndarray, shape (...,3)
+            Real space vector along direction or
+            reciprocal space vector along plane normal.
 
         Returns
         -------
-        Miller : numpy.ndarray of shape (...,3)
+        Miller : numpy.ndarray, shape (...,3)
             Lattice vector of direction or plane.
             Use util.scale_to_coprime to convert to (integer) Miller indices.
 
         """
         if (direction is not None) ^ (plane is None):
             raise KeyError('specify either "direction" or "plane"')
-        axis,basis  = (np.array(direction),self.basis_reciprocal.T) \
-                      if plane is None else \
-                      (np.array(plane),self.basis_real.T)
-        return np.einsum('il,...l',basis,axis)
+        basis,axis = (self.basis_reciprocal,np.array(direction)) \
+                     if plane is None else \
+                     (self.basis_real,np.array(plane))
+        return np.einsum('li,...l',basis,axis)
 
 
     def to_frame(self, *,
-                 uvw: np.ndarray = None,
-                 hkl: np.ndarray = None) -> np.ndarray:
+                 uvw: FloatSequence = None,
+                 hkl: FloatSequence = None) -> np.ndarray:
         """
-        Calculate crystal frame vector along lattice direction [uvw] or plane normal (hkl).
+        Calculate crystal frame vector corresponding to lattice direction [uvw] or plane normal (hkl).
 
         Parameters
         ----------
-        uvw|hkl : numpy.ndarray of shape (...,3)
+        uvw|hkl : numpy.ndarray, shape (...,3)
             Miller indices of crystallographic direction or plane normal.
 
         Returns
         -------
-        vector : numpy.ndarray of shape (...,3)
-            Crystal frame vector along [uvw] direction or (hkl) plane normal.
+        vector : numpy.ndarray, shape (...,3)
+            Crystal frame vector in real space along [uvw] direction or
+            in reciprocal space along (hkl) plane normal.
+
+        Examples
+        --------
+        Crystal frame vector (real space) of Magnesium corresponding to [1,1,0] direction:
+
+        >>> import damask
+        >>> Mg = damask.Crystal(lattice='hP', a=321e-12, c=521e-12)
+        >>> Mg.to_frame(uvw=[1, 1, 0])
+        array([1.60500000e-10, 2.77994155e-10, 0.00000000e+00])
+
+        Crystal frame vector (reciprocal space) of Titanium along (1,0,0) plane normal:
+
+        >>> import damask
+        >>> Ti = damask.Crystal(lattice='hP', a=0.295e-9, c=0.469e-9)
+        >>> Ti.to_frame(hkl=(1, 0, 0))
+        array([ 3.38983051e+09,  1.95711956e+09, -4.15134508e-07])
 
         """
         if (uvw is not None) ^ (hkl is None):
             raise KeyError('specify either "uvw" or "hkl"')
-        axis,basis  = (np.array(uvw),self.basis_real) \
-                      if hkl is None else \
-                      (np.array(hkl),self.basis_reciprocal)
+        basis,axis = (self.basis_real,np.array(uvw)) \
+                     if hkl is None else \
+                     (self.basis_reciprocal,np.array(hkl))
         return np.einsum('il,...l',basis,axis)
 
 
     def kinematics(self,
-                   mode: str) -> Dict[str, List[np.ndarray]]:
+                   mode: CrystalKinematics) -> Dict[str, List[np.ndarray]]:
         """
         Return crystal kinematics systems.
 
@@ -381,7 +491,7 @@ class Crystal():
             Directions and planes of deformation mode families.
 
         """
-        _kinematics = {
+        _kinematics: Dict[CrystalLattice, Dict[CrystalKinematics, List[np.ndarray]]] = {
             'cF': {
                 'slip': [np.array([
                            [+0,+1,-1, +1,+1,+1],
@@ -626,7 +736,7 @@ class Crystal():
 
 
     def relation_operations(self,
-                            model: str) -> Tuple[str, Rotation]:
+                            model: str) -> Tuple[CrystalLattice, Rotation]:
         """
         Crystallographic orientation relationships for phase transformations.
 
@@ -658,7 +768,7 @@ class Crystal():
         https://doi.org/10.1016/j.actamat.2004.11.021
 
         """
-        _orientation_relationships = {
+        _orientation_relationships: Dict[str, Dict[CrystalLattice,np.ndarray]] = {
           'KS': {
             'cF' : np.array([
                 [[-1, 0, 1],[ 1, 1, 1]],

@@ -162,7 +162,7 @@ module subroutine phase_hooke_SandItsTangents(S, dS_dFe, dS_dFi, &
 
 
   C66 = phase_damage_C66(phase_homogenizedC66(ph,en),ph,en)
-  C = math_Voigt66to3333(C66)
+  C = math_Voigt66to3333_stiffness(C66)
 
   E = 0.5_pReal*(matmul(transpose(Fe),Fe)-math_I3)                                                  !< Green-Lagrange strain in unloaded configuration
   S = math_Voigt6to33_stress(matmul(C66,math_33toVoigt6_strain(matmul(matmul(transpose(Fi),E),Fi))))!< 2PK stress in lattice configuration in work conjugate with GL strain pulled back to lattice configuration

@@ -9,7 +9,7 @@ import re
 import fractions
 from collections import abc
 from functools import reduce
-from typing import Union, Tuple, Iterable, Callable, Dict, List, Any, Literal, SupportsIndex, Sequence
+from typing import Union, Tuple, Iterable, Callable, Dict, List, Any, Literal
 from pathlib import Path
 
 import numpy as np
@@ -284,7 +284,7 @@ def scale_to_coprime(v: FloatSequence) -> np.ndarray:
 
     with np.errstate(invalid='ignore'):
         if not np.allclose(np.ma.masked_invalid(v_/m),v_[np.argmax(abs(v_))]/m[np.argmax(abs(v_))]):
-            raise ValueError(f'Invalid result {m} for input {v_}. Insufficient precision?')
+            raise ValueError(f'invalid result "{m}" for input "{v_}"')
 
     return m
 
@@ -427,7 +427,7 @@ def hybrid_IA(dist: np.ndarray,
 def shapeshifter(fro: Tuple[int, ...],
                  to: Tuple[int, ...],
                  mode: Literal['left','right'] = 'left',
-                 keep_ones: bool = False) -> Sequence[SupportsIndex]:
+                 keep_ones: bool = False) -> Tuple[int, ...]:
     """
     Return dimensions that reshape 'fro' to become broadcastable to 'to'.
 
@@ -482,7 +482,7 @@ def shapeshifter(fro: Tuple[int, ...],
         assert match
         grp = match.groups()
     except AssertionError:
-        raise ValueError(f'Shapes can not be shifted {fro} --> {to}')
+        raise ValueError(f'shapes cannot be shifted {fro} --> {to}')
     fill: Any = ()
     for g,d in zip(grp,fro+(None,)):
         fill += (1,)*g.count(',')+(d,)
@@ -490,7 +490,7 @@ def shapeshifter(fro: Tuple[int, ...],
 
 
 def shapeblender(a: Tuple[int, ...],
-                 b: Tuple[int, ...]) -> Sequence[SupportsIndex]:
+                 b: Tuple[int, ...]) -> Tuple[int, ...]:
     """
     Return a shape that overlaps the rightmost entries of 'a' with the leftmost of 'b'.
 
@@ -575,7 +575,7 @@ def DREAM3D_base_group(fname: Union[str, Path]) -> str:
         base_group = f.visit(lambda path: path.rsplit('/',2)[0] if '_SIMPL_GEOMETRY/SPACING' in path else None)
 
     if base_group is None:
-        raise ValueError(f'Could not determine base group in file {fname}.')
+        raise ValueError(f'could not determine base group in file "{fname}"')
 
     return base_group
 
@@ -606,7 +606,7 @@ def DREAM3D_cell_data_group(fname: Union[str, Path]) -> str:
                                                    else None)
 
     if cell_data_group is None:
-        raise ValueError(f'Could not determine cell data group in file {fname}/{base_group}.')
+        raise ValueError(f'could not determine cell-data group in file "{fname}/{base_group}"')
 
     return cell_data_group
 
@@ -629,7 +629,7 @@ def Bravais_to_Miller(*,
 
     """
     if (uvtw is not None) ^ (hkil is None):
-        raise KeyError('Specify either "uvtw" or "hkil"')
+        raise KeyError('specify either "uvtw" or "hkil"')
     axis,basis  = (np.array(uvtw),np.array([[1,0,-1,0],
                                             [0,1,-1,0],
                                             [0,0, 0,1]])) \
@@ -658,7 +658,7 @@ def Miller_to_Bravais(*,
 
     """
     if (uvw is not None) ^ (hkl is None):
-        raise KeyError('Specify either "uvw" or "hkl"')
+        raise KeyError('specify either "uvw" or "hkl"')
     axis,basis  = (np.array(uvw),np.array([[ 2,-1, 0],
                                            [-1, 2, 0],
                                            [-1,-1, 0],
@@ -763,7 +763,7 @@ class ProgressBar:
 
         fraction = (iteration+1) / self.total
 
-        if filled_length := int(self.bar_length * fraction) > int(self.bar_length * self.fraction_last) or \
+        if (filled_length := int(self.bar_length * fraction)) > int(self.bar_length * self.fraction_last) or \
             datetime.datetime.now() - self.time_last_update > datetime.timedelta(seconds=10):
             self.time_last_update = datetime.datetime.now()
             bar = '█' * filled_length + '░' * (self.bar_length - filled_length)

@@ -96,14 +96,14 @@ mesh_GNU:
 grid_GNU-64bit:
   stage: compile
   script:
-    - module load Compiler/GNU/10 Libraries/PETSc/3.16.2/64bit
+    - module load Compiler/GNU/10 Libraries/PETSc/3.16.4/64bit
     - cd PRIVATE/testing/pytest
     - pytest -k 'compile and grid' --basetemp ${TESTROOT}/compile_grid_GNU-64bit
 
 mesh_GNU-64bit:
   stage: compile
   script:
-    - module load Compiler/GNU/10 Libraries/PETSc/3.16.2/64bit
+    - module load Compiler/GNU/10 Libraries/PETSc/3.16.4/64bit
     - cd PRIVATE/testing/pytest
     - pytest -k 'compile and mesh' --basetemp ${TESTROOT}/compile_mesh_GNU-64bit
 
@@ -232,7 +232,9 @@ update_revision:
     - git pull
     - export VERSION=$(git describe ${CI_COMMIT_SHA})
     - echo ${VERSION} > python/damask/VERSION
-    - git commit python/damask/VERSION -m "[skip ci] updated version information after successful test of $VERSION"
+    - >
+       git diff-index --quiet HEAD ||
+       git commit python/damask/VERSION -m "[skip ci] updated version information after successful test of $VERSION"
     - if [ ${CI_COMMIT_SHA} == $(git rev-parse HEAD^) ]; then git push origin HEAD:master HEAD:development; fi
   only:
     - development

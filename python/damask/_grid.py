@@ -62,9 +62,9 @@ class Grid:
         mat_max = np.nanmax(self.material)
         mat_N   = self.N_materials
         return util.srepr([
-               f'cells : {util.srepr(self.cells, " x ")}',
-               f'size  : {util.srepr(self.size,  " x ")} / m³',
-               f'origin: {util.srepr(self.origin,"   ")} / m',
+               f'cells:  {util.srepr(self.cells, " × ")}',
+               f'size:   {util.srepr(self.size,  " × ")} m³',
+               f'origin: {util.srepr(self.origin,"   ")} m',
                f'# materials: {mat_N}' + ('' if mat_min == 0 and mat_max+1 == mat_N else
                                           f' (min: {mat_min}, max: {mat_max})')
               ])
@@ -107,7 +107,7 @@ class Grid:
         if len(material.shape) != 3:
             raise ValueError(f'invalid material shape {material.shape}')
         if material.dtype not in np.sctypes['float'] and material.dtype not in np.sctypes['int']:
-            raise TypeError(f'invalid material data type {material.dtype}')
+            raise TypeError(f'invalid material data type "{material.dtype}"')
 
         self._material = np.copy(material)
 
@@ -182,7 +182,7 @@ class Grid:
             Grid-based geometry from file.
 
         """
-        v = VTK.load(fname if str(fname).endswith(('.vti','.vtr')) else str(fname)+'.vti')          # compatibility hack
+        v = VTK.load(fname if str(fname).endswith('.vti') else str(fname)+'.vti')
         comments = v.get_comments()
         cells = np.array(v.vtk_data.GetDimensions())-1
         bbox  = np.array(v.vtk_data.GetBounds()).reshape(3,2).T
@@ -228,7 +228,7 @@ class Grid:
         except ValueError:
             header_length,keyword = (-1, 'invalid')
         if not keyword.startswith('head') or header_length < 3:
-            raise TypeError('header length information missing or invalid')
+            raise TypeError('invalid or missing header length information')
 
         comments = []
         content = f.readlines()
@@ -258,7 +258,7 @@ class Grid:
             i += len(items)
 
         if i != cells.prod():
-            raise TypeError(f'invalid file: expected {cells.prod()} entries, found {i}')
+            raise TypeError(f'mismatch between {cells.prod()} expected entries and {i} found')
 
         if not np.any(np.mod(material,1) != 0.0):                                                   # no float present
             material = material.astype('int') - (1 if material.min() > 0 else 0)
@@ -603,8 +603,8 @@ class Grid:
         >>> import damask
         >>> damask.Grid.from_minimal_surface([64]*3,np.ones(3)*1.e-4,'Gyroid')
         cells : 64 x 64 x 64
-        size  : 0.0001 x 0.0001 x 0.0001 / m³
-        origin: 0.0   0.0   0.0 / m
+        size  : 0.0001 x 0.0001 x 0.0001 m³
+        origin: 0.0   0.0   0.0 m
         # materials: 2
 
         Minimal surface of 'Neovius' type. non-default material IDs.
@@ -614,8 +614,8 @@ class Grid:
         >>> damask.Grid.from_minimal_surface([80]*3,np.ones(3)*5.e-4,
         ...                                  'Neovius',materials=(1,5))
         cells : 80 x 80 x 80
-        size  : 0.0005 x 0.0005 x 0.0005 / m³
-        origin: 0.0   0.0   0.0 / m
+        size  : 0.0005 x 0.0005 x 0.0005 m³
+        origin: 0.0   0.0   0.0 m
         # materials: 2 (min: 1, max: 5)
 
         """
@@ -735,8 +735,8 @@ class Grid:
         >>> g = damask.Grid(np.zeros([64]*3,int), np.ones(3)*1e-4)
         >>> g.add_primitive(np.ones(3)*5e-5,np.ones(3)*5e-5,1)
         cells : 64 x 64 x 64
-        size  : 0.0001 x 0.0001 x 0.0001 / m³
-        origin: 0.0   0.0   0.0 / m
+        size  : 0.0001 x 0.0001 x 0.0001 m³
+        origin: 0.0   0.0   0.0 m
         # materials: 2
 
         Add a cube at the origin.
@@ -746,8 +746,8 @@ class Grid:
         >>> g = damask.Grid(np.zeros([64]*3,int), np.ones(3)*1e-4)
         >>> g.add_primitive(np.ones(3,int)*32,np.zeros(3),np.inf)
         cells : 64 x 64 x 64
-        size  : 0.0001 x 0.0001 x 0.0001 / m³
-        origin: 0.0   0.0   0.0 / m
+        size  : 0.0001 x 0.0001 x 0.0001 m³
+        origin: 0.0   0.0   0.0 m
         # materials: 2
 
         """
@@ -805,13 +805,13 @@ class Grid:
         >>> g = damask.Grid(np.zeros([32]*3,int), np.ones(3)*1e-4)
         >>> g.mirror('xy',True)
         cells : 64 x 64 x 32
-        size  : 0.0002 x 0.0002 x 0.0001 / m³
-        origin: 0.0   0.0   0.0 / m
+        size  : 0.0002 x 0.0002 x 0.0001 m³
+        origin: 0.0   0.0   0.0 m
         # materials: 1
 
         """
         if not set(directions).issubset(valid := ['x', 'y', 'z']):
-            raise ValueError(f'invalid direction {set(directions).difference(valid)} specified')
+            raise ValueError(f'invalid direction "{set(directions).difference(valid)}" specified')
 
         limits: Sequence[Optional[int]] = [None,None] if reflect else [-2,0]
         mat = self.material.copy()
@@ -847,7 +847,7 @@ class Grid:
 
         """
         if not set(directions).issubset(valid := ['x', 'y', 'z']):
-            raise ValueError(f'invalid direction {set(directions).difference(valid)} specified')
+            raise ValueError(f'invalid direction "{set(directions).difference(valid)}" specified')
 
 
         mat = np.flip(self.material, [valid.index(d) for d in directions if d in valid])
@@ -886,8 +886,8 @@ class Grid:
         >>> g = damask.Grid(np.zeros([32]*3,int),np.ones(3)*1e-4)
         >>> g.scale(g.cells*2)
         cells : 64 x 64 x 64
-        size  : 0.0001 x 0.0001 x 0.0001 / m³
-        origin: 0.0   0.0   0.0 / m
+        size  : 0.0001 x 0.0001 x 0.0001 m³
+        origin: 0.0   0.0   0.0 m
         # materials: 1
 
         """
@@ -1036,8 +1036,8 @@ class Grid:
         >>> g = damask.Grid(np.zeros([32]*3,int),np.ones(3)*1e-4)
         >>> g.canvas([32,32,16])
         cells : 33 x 32 x 16
-        size  : 0.0001 x 0.0001 x 5e-05 / m³
-        origin: 0.0   0.0   0.0 / m
+        size  : 0.0001 x 0.0001 x 5e-05 m³
+        origin: 0.0   0.0   0.0 m
         # materials: 1
 
         """
@@ -1184,7 +1184,7 @@ class Grid:
 
         """
         if not set(directions).issubset(valid := ['x', 'y', 'z']):
-            raise ValueError(f'invalid direction {set(directions).difference(valid)} specified')
+            raise ValueError(f'invalid direction "{set(directions).difference(valid)}" specified')
 
         o = [[0, self.cells[0]+1,           np.prod(self.cells[:2]+1)+self.cells[0]+1, np.prod(self.cells[:2]+1)],
              [0, np.prod(self.cells[:2]+1), np.prod(self.cells[:2]+1)+1,               1],
