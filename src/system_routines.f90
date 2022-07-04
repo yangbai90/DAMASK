@@ -15,61 +15,78 @@ module system_routines
     getCWD, &
     getHostName, &
     getUserName, &
-    signalterm_C, &
+    signalint_C, &
     signalusr1_C, &
-    signalusr2_C
+    signalusr2_C, &
+    f_c_string, &
+    free_C
 
 
   interface
 
-  function setCWD_C(cwd) bind(C)
-    use, intrinsic :: ISO_C_Binding, only: C_INT, C_CHAR
 
-    integer(C_INT) :: setCWD_C
-    character(kind=C_CHAR), dimension(*), intent(in) :: cwd
-  end function setCWD_C
+    function setCWD_C(cwd) bind(C)
+      use, intrinsic :: ISO_C_Binding, only: C_INT, C_CHAR
+      implicit none
 
-  subroutine getCWD_C(cwd, stat) bind(C)
-    use, intrinsic :: ISO_C_Binding, only: C_INT, C_CHAR
-    use prec
+      integer(C_INT) :: setCWD_C
+      character(kind=C_CHAR), dimension(*), intent(in) :: cwd
+    end function setCWD_C
 
-    character(kind=C_CHAR), dimension(pPathLen+1), intent(out) :: cwd                               ! NULL-terminated array
-    integer(C_INT),                                intent(out) :: stat
-  end subroutine getCWD_C
+    subroutine getCWD_C(cwd, stat) bind(C)
+      use, intrinsic :: ISO_C_Binding, only: C_INT, C_CHAR
+      use prec
+      implicit none
 
-  subroutine getHostName_C(hostname, stat) bind(C)
-    use, intrinsic :: ISO_C_Binding, only: C_INT, C_CHAR
-    use prec
+      character(kind=C_CHAR), dimension(pPathLen+1), intent(out) :: cwd                             ! NULL-terminated array
+      integer(C_INT),                                intent(out) :: stat
+    end subroutine getCWD_C
 
-    character(kind=C_CHAR), dimension(pStringLen+1), intent(out) :: hostname                        ! NULL-terminated array
-    integer(C_INT),                                  intent(out) :: stat
-  end subroutine getHostName_C
+    subroutine getHostName_C(hostname, stat) bind(C)
+      use, intrinsic :: ISO_C_Binding, only: C_INT, C_CHAR
+      use prec
+      implicit none
 
-  subroutine getUserName_C(username, stat) bind(C)
-    use, intrinsic :: ISO_C_Binding, only: C_INT, C_CHAR
-    use prec
+      character(kind=C_CHAR), dimension(pStringLen+1), intent(out) :: hostname                        ! NULL-terminated array
+      integer(C_INT),                                  intent(out) :: stat
+    end subroutine getHostName_C
 
-    character(kind=C_CHAR), dimension(pStringLen+1), intent(out) :: username                        ! NULL-terminated array
-    integer(C_INT),                                  intent(out) :: stat
-  end subroutine getUserName_C
+    subroutine getUserName_C(username, stat) bind(C)
+      use, intrinsic :: ISO_C_Binding, only: C_INT, C_CHAR
+      use prec
+      implicit none
 
-  subroutine signalterm_C(handler) bind(C)
-    use, intrinsic :: ISO_C_Binding, only: C_FUNPTR
+      character(kind=C_CHAR), dimension(pStringLen+1), intent(out) :: username                        ! NULL-terminated array
+      integer(C_INT),                                  intent(out) :: stat
+    end subroutine getUserName_C
 
-    type(C_FUNPTR), intent(in), value :: handler
-  end subroutine signalterm_C
+    subroutine signalint_C(handler) bind(C)
+      use, intrinsic :: ISO_C_Binding, only: C_FUNPTR
+      implicit none
 
-  subroutine signalusr1_C(handler) bind(C)
-    use, intrinsic :: ISO_C_Binding, only: C_FUNPTR
+      type(C_FUNPTR), intent(in), value :: handler
+    end subroutine signalint_C
 
-    type(C_FUNPTR), intent(in), value :: handler
-  end subroutine signalusr1_C
+    subroutine signalusr1_C(handler) bind(C)
+      use, intrinsic :: ISO_C_Binding, only: C_FUNPTR
+      implicit none
 
-  subroutine signalusr2_C(handler) bind(C)
-    use, intrinsic :: ISO_C_Binding, only: C_FUNPTR
+      type(C_FUNPTR), intent(in), value :: handler
+    end subroutine signalusr1_C
 
-    type(C_FUNPTR), intent(in), value :: handler
-  end subroutine signalusr2_C
+    subroutine signalusr2_C(handler) bind(C)
+      use, intrinsic :: ISO_C_Binding, only: C_FUNPTR
+      implicit none
+
+      type(C_FUNPTR), intent(in), value :: handler
+    end subroutine signalusr2_C
+
+    subroutine free_C(ptr) bind(C,name='free')
+      use, intrinsic :: ISO_C_Binding, only: C_PTR
+      implicit none
+
+      type(C_PTR), value :: ptr
+    end subroutine free_C
 
   end interface
 
@@ -106,7 +123,7 @@ function getCWD()
     getCWD = c_f_string(getCWD_Cstring)
   else
     error stop 'invalid working directory'
-  endif
+  end if
 
 end function getCWD
 
@@ -128,7 +145,7 @@ function getHostName()
     getHostName = c_f_string(getHostName_Cstring)
   else
     getHostName = 'n/a (Error!)'
-  endif
+  end if
 
 end function getHostName
 

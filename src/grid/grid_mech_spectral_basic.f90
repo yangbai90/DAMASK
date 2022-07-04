@@ -15,7 +15,7 @@ module grid_mechanical_spectral_basic
 
   use prec
   use parallelization
-  use DAMASK_interface
+  use CLI
   use IO
   use HDF5
   use HDF5_utilities
@@ -117,6 +117,8 @@ subroutine grid_mechanical_spectral_basic_init
   class (tNode), pointer :: &
     num_grid, &
     debug_grid
+  character(len=pStringLen) :: &
+    extmsg = ''
 
   print'(/,1x,a)', '<<<+-  grid_mechanical_spectral_basic init  -+>>>'; flush(IO_STDOUT)
 
@@ -143,12 +145,14 @@ subroutine grid_mechanical_spectral_basic_init
   num%itmin           = num_grid%get_asInt  ('itmin',defaultVal=1)
   num%itmax           = num_grid%get_asInt  ('itmax',defaultVal=250)
 
-  if (num%eps_div_atol <= 0.0_pReal)             call IO_error(301,ext_msg='eps_div_atol')
-  if (num%eps_div_rtol < 0.0_pReal)              call IO_error(301,ext_msg='eps_div_rtol')
-  if (num%eps_stress_atol <= 0.0_pReal)          call IO_error(301,ext_msg='eps_stress_atol')
-  if (num%eps_stress_rtol < 0.0_pReal)           call IO_error(301,ext_msg='eps_stress_rtol')
-  if (num%itmax <= 1)                            call IO_error(301,ext_msg='itmax')
-  if (num%itmin > num%itmax .or. num%itmin < 1)  call IO_error(301,ext_msg='itmin')
+  if (num%eps_div_atol <= 0.0_pReal)             extmsg = trim(extmsg)//' eps_div_atol'
+  if (num%eps_div_rtol < 0.0_pReal)              extmsg = trim(extmsg)//' eps_div_rtol'
+  if (num%eps_stress_atol <= 0.0_pReal)          extmsg = trim(extmsg)//' eps_stress_atol'
+  if (num%eps_stress_rtol < 0.0_pReal)           extmsg = trim(extmsg)//' eps_stress_rtol'
+  if (num%itmax <= 1)                            extmsg = trim(extmsg)//' itmax'
+  if (num%itmin > num%itmax .or. num%itmin < 1)  extmsg = trim(extmsg)//' itmin'
+
+  if (extmsg /= '') call IO_error(301,ext_msg=trim(extmsg))
 
 !--------------------------------------------------------------------------------------------------
 ! set default and user defined options for PETSc
@@ -201,8 +205,8 @@ subroutine grid_mechanical_spectral_basic_init
   call DMDAVecGetArrayF90(da,solution_vec,F,err_PETSc)                                              ! places pointer on PETSc data
   CHKERRQ(err_PETSc)
 
-  restartRead: if (interface_restartInc > 0) then
-    print'(/,1x,a,i0,a)', 'reading restart data of increment ', interface_restartInc, ' from file'
+  restartRead: if (CLI_restartInc > 0) then
+    print'(/,1x,a,i0,a)', 'reading restart data of increment ', CLI_restartInc, ' from file'
 
     fileHandle  = HDF5_openFile(getSolverJobName()//'_restart.hdf5','r')
     groupHandle = HDF5_openGroup(fileHandle,'solver')
@@ -222,7 +226,7 @@ subroutine grid_mechanical_spectral_basic_init
     call HDF5_read(F,groupHandle,'F')
     call HDF5_read(F_lastInc,groupHandle,'F_lastInc')
 
-  elseif (interface_restartInc == 0) then restartRead
+  elseif (CLI_restartInc == 0) then restartRead
     F_lastInc = spread(spread(spread(math_I3,3,cells(1)),4,cells(2)),5,cells3)                      ! initialize to identity
     F = reshape(F_lastInc,[9,cells(1),cells(2),cells3])
   end if restartRead
@@ -235,8 +239,8 @@ subroutine grid_mechanical_spectral_basic_init
   call DMDAVecRestoreArrayF90(da,solution_vec,F,err_PETSc)                                          ! deassociate pointer
   CHKERRQ(err_PETSc)
 
-  restartRead2: if (interface_restartInc > 0) then
-    print'(1x,a,i0,a)', 'reading more restart data of increment ', interface_restartInc, ' from file'
+  restartRead2: if (CLI_restartInc > 0) then
+    print'(1x,a,i0,a)', 'reading more restart data of increment ', CLI_restartInc, ' from file'
     call HDF5_read(C_volAvg,groupHandle,'C_volAvg',.false.)
     call MPI_Bcast(C_volAvg,81_MPI_INTEGER_KIND,MPI_DOUBLE,0_MPI_INTEGER_KIND,MPI_COMM_WORLD,err_MPI)
     if (err_MPI /= 0_MPI_INTEGER_KIND) error stop 'MPI error'

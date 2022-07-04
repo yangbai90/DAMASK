@@ -4,16 +4,15 @@
 !> @brief Utilities used by the different spectral solver variants
 !--------------------------------------------------------------------------------------------------
 module spectral_utilities
-  use, intrinsic :: iso_c_binding
-
 #include <petsc/finclude/petscsys.h>
   use PETScSys
 #if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR>14) && !defined(PETSC_HAVE_MPI_F90MODULE_VISIBILITY)
   use MPI_f08
 #endif
+  use FFTW3
 
   use prec
-  use DAMASK_interface
+  use CLI
   use parallelization
   use math
   use rotations
@@ -26,8 +25,6 @@ module spectral_utilities
   implicit none
   private
 
-  include 'fftw3-mpi.f03'
-
 !--------------------------------------------------------------------------------------------------
 ! grid related information
   real(pReal), protected,  public                :: wgt                                             !< weighting factor 1/Nelems
@@ -37,12 +34,12 @@ module spectral_utilities
 !--------------------------------------------------------------------------------------------------
 ! variables storing information for spectral method and FFTW
 
-  real   (C_DOUBLE),        public,  dimension(:,:,:,:,:),     pointer     :: tensorField_real      !< real representation (some stress or deformation) of field_fourier
-  complex(C_DOUBLE_COMPLEX),public,  dimension(:,:,:,:,:),     pointer     :: tensorField_fourier   !< field on which the Fourier transform operates
-  real(C_DOUBLE),           public,  dimension(:,:,:,:),       pointer     :: vectorField_real      !< vector field real representation for fftw
-  complex(C_DOUBLE_COMPLEX),public,  dimension(:,:,:,:),       pointer     :: vectorField_fourier   !< vector field fourier representation for fftw
-  real(C_DOUBLE),           public,  dimension(:,:,:),         pointer     :: scalarField_real      !< scalar field real representation for fftw
-  complex(C_DOUBLE_COMPLEX),public,  dimension(:,:,:),         pointer     :: scalarField_fourier   !< scalar field fourier representation for fftw
+  real(C_DOUBLE),           public,  dimension(:,:,:,:,:),     pointer     :: tensorField_real      !< tensor field in real space
+  real(C_DOUBLE),           public,  dimension(:,:,:,:),       pointer     :: vectorField_real      !< vector field in real space
+  real(C_DOUBLE),           public,  dimension(:,:,:),         pointer     :: scalarField_real      !< scalar field in real space
+  complex(C_DOUBLE_COMPLEX),         dimension(:,:,:,:,:),     pointer     :: tensorField_fourier   !< tensor field in Fourier space
+  complex(C_DOUBLE_COMPLEX),         dimension(:,:,:,:),       pointer     :: vectorField_fourier   !< tensor field in Fourier space
+  complex(C_DOUBLE_COMPLEX),         dimension(:,:,:),         pointer     :: scalarField_fourier   !< tensor field in Fourier space
   complex(pReal),                    dimension(:,:,:,:,:,:,:), allocatable :: gamma_hat             !< gamma operator (field) for spectral method
   complex(pReal),                    dimension(:,:,:,:),       allocatable :: xi1st                 !< wave vector field for first derivatives
   complex(pReal),                    dimension(:,:,:,:),       allocatable :: xi2nd                 !< wave vector field for second derivatives
@@ -142,7 +139,7 @@ contains
 !> level chosen.
 !> Initializes FFTW.
 !--------------------------------------------------------------------------------------------------
-subroutine spectral_utilities_init
+subroutine spectral_utilities_init()
 
   PetscErrorCode :: err_PETSc
   integer        :: i, j, k, &
@@ -152,10 +149,9 @@ subroutine spectral_utilities_init
     tensorField, &                                                                                  !< field containing data for FFTW in real and fourier space (in place)
     vectorField, &                                                                                  !< field containing data for FFTW in real space when debugging FFTW (no in place)
     scalarField                                                                                     !< field containing data for FFTW in real space when debugging FFTW (no in place)
-  integer(C_INTPTR_T), dimension(3) :: gridFFTW
-  integer(C_INTPTR_T) :: alloc_local, local_K, local_K_offset
+  integer(C_INTPTR_T), dimension(3) :: cellsFFTW
+  integer(C_INTPTR_T) :: N, z, devNull
   integer(C_INTPTR_T), parameter :: &
-    scalarSize = 1_C_INTPTR_T, &
     vectorSize = 3_C_INTPTR_T, &
     tensorSize = 9_C_INTPTR_T
   character(len=*), parameter :: &
@@ -202,7 +198,7 @@ subroutine spectral_utilities_init
   CHKERRQ(err_PETSc)
 
   cells1Red = cells(1)/2 + 1
-  wgt = 1.0/real(product(cells),pReal)
+  wgt = real(product(cells),pReal)**(-1)
 
   num%memory_efficient      = num_grid%get_asInt('memory_efficient',      defaultVal=1) > 0         ! ToDo: should be logical in YAML file
   num%divergence_correction = num_grid%get_asInt('divergence_correction', defaultVal=2)
@@ -249,81 +245,87 @@ subroutine spectral_utilities_init
     case('fftw_exhaustive')
       FFTW_planner_flag = FFTW_EXHAUSTIVE
     case default
-      call IO_warning(warning_ID=47,ext_msg=trim(IO_lc(num_grid%get_asString('fftw_plan_mode'))))
+      call IO_warning(47,'using default FFTW_MEASURE instead of "'//trim(num_grid%get_asString('fftw_plan_mode'))//'"')
       FFTW_planner_flag = FFTW_MEASURE
   end select
 
 !--------------------------------------------------------------------------------------------------
 ! general initialization of FFTW (see manual on fftw.org for more details)
   if (pReal /= C_DOUBLE .or. kind(1) /= C_INT) error stop 'C and Fortran datatypes do not match'
-  call fftw_set_timelimit(num_grid%get_asFloat('fftw_timelimit',defaultVal=-1.0_pReal))
+  call fftw_set_timelimit(num_grid%get_asFloat('fftw_timelimit',defaultVal=300.0_pReal))
 
   print'(/,1x,a)', 'FFTW initialized'; flush(IO_STDOUT)
 
 !--------------------------------------------------------------------------------------------------
-! MPI allocation
-  gridFFTW = int(cells,C_INTPTR_T)
-  alloc_local = fftw_mpi_local_size_3d(gridFFTW(3), gridFFTW(2), gridFFTW(1)/2 +1, &
-                                       PETSC_COMM_WORLD, local_K, local_K_offset)
+! allocation
   allocate (xi1st (3,cells1Red,cells(2),cells3),source = cmplx(0.0_pReal,0.0_pReal,pReal))          ! frequencies for first derivatives, only half the size for first dimension
   allocate (xi2nd (3,cells1Red,cells(2),cells3),source = cmplx(0.0_pReal,0.0_pReal,pReal))          ! frequencies for second derivatives, only half the size for first dimension
 
-  tensorField = fftw_alloc_complex(tensorSize*alloc_local)
-  call c_f_pointer(tensorField, tensorField_real,    [3_C_INTPTR_T,3_C_INTPTR_T, &
-                   2_C_INTPTR_T*(gridFFTW(1)/2_C_INTPTR_T + 1_C_INTPTR_T),gridFFTW(2),local_K])     ! place a pointer for a real tensor representation
-  call c_f_pointer(tensorField, tensorField_fourier, [3_C_INTPTR_T,3_C_INTPTR_T, &
-                   gridFFTW(1)/2_C_INTPTR_T + 1_C_INTPTR_T ,              gridFFTW(2),local_K])     ! place a pointer for a fourier tensor representation
+  cellsFFTW = int(cells,C_INTPTR_T)
 
-  vectorField = fftw_alloc_complex(vectorSize*alloc_local)
-  call c_f_pointer(vectorField, vectorField_real,   [3_C_INTPTR_T,&
-                   2_C_INTPTR_T*(gridFFTW(1)/2_C_INTPTR_T + 1_C_INTPTR_T),gridFFTW(2),local_K])     ! place a pointer for a real vector representation
-  call c_f_pointer(vectorField, vectorField_fourier,[3_C_INTPTR_T,&
-                   gridFFTW(1)/2_C_INTPTR_T + 1_C_INTPTR_T,               gridFFTW(2),local_K])     ! place a pointer for a fourier vector representation
+  N = fftw_mpi_local_size_many(3,[cellsFFTW(3),cellsFFTW(2),cellsFFTW(1)/2_C_INTPTR_T+1_C_INTPTR_T],&
+                               tensorSize,FFTW_MPI_DEFAULT_BLOCK,PETSC_COMM_WORLD,z,devNull)
+  if (int(z) /= cells3) error stop 'domain decomposition mismatch (tensor)'
+  tensorField = fftw_alloc_complex(N)
+  call c_f_pointer(tensorField,tensorField_real, &
+                   [3_C_INTPTR_T,3_C_INTPTR_T,2_C_INTPTR_T*(cellsFFTW(1)/2_C_INTPTR_T+1_C_INTPTR_T),cellsFFTW(2),z])
+  call c_f_pointer(tensorField,tensorField_fourier, &
+                   [3_C_INTPTR_T,3_C_INTPTR_T,              cellsFFTW(1)/2_C_INTPTR_T+1_C_INTPTR_T, cellsFFTW(2),z])
 
-  scalarField = fftw_alloc_complex(scalarSize*alloc_local)                                          ! allocate data for real representation (no in place transform)
-  call c_f_pointer(scalarField,    scalarField_real, &
-                   [2_C_INTPTR_T*(gridFFTW(1)/2_C_INTPTR_T + 1),gridFFTW(2),local_K])               ! place a pointer for a real scalar representation
-  call c_f_pointer(scalarField, scalarField_fourier, &
-                    [             gridFFTW(1)/2_C_INTPTR_T + 1 ,gridFFTW(2),local_K])               ! place a pointer for a fourier scarlar representation
+  N = fftw_mpi_local_size_many(3,[cellsFFTW(3),cellsFFTW(2),cellsFFTW(1)/2_C_INTPTR_T+1_C_INTPTR_T],&
+                               vectorSize,FFTW_MPI_DEFAULT_BLOCK,PETSC_COMM_WORLD,z,devNull)
+  if (int(z) /= cells3) error stop 'domain decomposition mismatch (vector)'
+  vectorField = fftw_alloc_complex(N)
+  call c_f_pointer(vectorField,vectorField_real, &
+                   [3_C_INTPTR_T,2_C_INTPTR_T*(cellsFFTW(1)/2_C_INTPTR_T+1_C_INTPTR_T),cellsFFTW(2),z])
+  call c_f_pointer(vectorField,vectorField_fourier, &
+                   [3_C_INTPTR_T,              cellsFFTW(1)/2_C_INTPTR_T+1_C_INTPTR_T, cellsFFTW(2),z])
+
+  N = fftw_mpi_local_size_3d(cellsFFTW(3),cellsFFTW(2),cellsFFTW(1)/2_C_INTPTR_T+1_C_INTPTR_T,&
+                             PETSC_COMM_WORLD,z,devNull)
+  if (int(z) /= cells3) error stop 'domain decomposition mismatch (scalar)'
+  scalarField = fftw_alloc_complex(N)
+  call c_f_pointer(scalarField,scalarField_real, &
+                   [2_C_INTPTR_T*(cellsFFTW(1)/2_C_INTPTR_T+1_C_INTPTR_T),cellsFFTW(2),z])
+  call c_f_pointer(scalarField,scalarField_fourier, &
+                   [              cellsFFTW(1)/2_C_INTPTR_T+1_C_INTPTR_T, cellsFFTW(2),z])
 
 !--------------------------------------------------------------------------------------------------
 ! tensor MPI fftw plans
-  planTensorForth = fftw_mpi_plan_many_dft_r2c(3,gridFFTW(3:1:-1),tensorSize, &
+  planTensorForth = fftw_mpi_plan_many_dft_r2c(3,cellsFFTW(3:1:-1),tensorSize, &
                                                FFTW_MPI_DEFAULT_BLOCK,FFTW_MPI_DEFAULT_BLOCK, &
                                                tensorField_real,tensorField_fourier, &
                                                PETSC_COMM_WORLD,FFTW_planner_flag)
-  if (.not. c_associated(planTensorForth)) error stop 'FFTW error'
-  planTensorBack  = fftw_mpi_plan_many_dft_c2r(3,gridFFTW(3:1:-1),tensorSize, &
-                                               FFTW_MPI_DEFAULT_BLOCK, FFTW_MPI_DEFAULT_BLOCK, &
+  if (.not. c_associated(planTensorForth)) error stop 'FFTW error r2c tensor'
+  planTensorBack  = fftw_mpi_plan_many_dft_c2r(3,cellsFFTW(3:1:-1),tensorSize, &
+                                               FFTW_MPI_DEFAULT_BLOCK,FFTW_MPI_DEFAULT_BLOCK, &
                                                tensorField_fourier,tensorField_real, &
-                                               PETSC_COMM_WORLD, FFTW_planner_flag)
-  if (.not. c_associated(planTensorBack)) error stop 'FFTW error'
+                                               PETSC_COMM_WORLD,FFTW_planner_flag)
+  if (.not. c_associated(planTensorBack))  error stop 'FFTW error c2r tensor'
 
 !--------------------------------------------------------------------------------------------------
 ! vector MPI fftw plans
-  planVectorForth = fftw_mpi_plan_many_dft_r2c(3,gridFFTW(3:1:-1),vectorSize, &
+  planVectorForth = fftw_mpi_plan_many_dft_r2c(3,cellsFFTW(3:1:-1),vectorSize, &
                                                FFTW_MPI_DEFAULT_BLOCK,FFTW_MPI_DEFAULT_BLOCK, &
                                                vectorField_real,vectorField_fourier, &
                                                PETSC_COMM_WORLD,FFTW_planner_flag)
-  if (.not. c_associated(planVectorForth)) error stop 'FFTW error'
-  planVectorBack  = fftw_mpi_plan_many_dft_c2r(3,gridFFTW(3:1:-1),vectorSize, &
-                                               FFTW_MPI_DEFAULT_BLOCK, FFTW_MPI_DEFAULT_BLOCK, &
+  if (.not. c_associated(planVectorForth)) error stop 'FFTW error r2c vector'
+  planVectorBack  = fftw_mpi_plan_many_dft_c2r(3,cellsFFTW(3:1:-1),vectorSize, &
+                                               FFTW_MPI_DEFAULT_BLOCK,FFTW_MPI_DEFAULT_BLOCK, &
                                                vectorField_fourier,vectorField_real, &
-                                               PETSC_COMM_WORLD, FFTW_planner_flag)
-  if (.not. c_associated(planVectorBack)) error stop 'FFTW error'
+                                               PETSC_COMM_WORLD,FFTW_planner_flag)
+  if (.not. c_associated(planVectorBack))  error stop 'FFTW error c2r vector'
 
 !--------------------------------------------------------------------------------------------------
 ! scalar MPI fftw plans
-  planScalarForth = fftw_mpi_plan_many_dft_r2c(3,gridFFTW(3:1:-1),scalarSize, &
-                                               FFTW_MPI_DEFAULT_BLOCK,FFTW_MPI_DEFAULT_BLOCK, &
-                                               scalarField_real,scalarField_fourier, &
-                                               PETSC_COMM_WORLD,FFTW_planner_flag)
-  if (.not. c_associated(planScalarForth)) error stop 'FFTW error'
-  planScalarBack  = fftw_mpi_plan_many_dft_c2r(3,gridFFTW(3:1:-1),scalarSize, &
-                                               FFTW_MPI_DEFAULT_BLOCK, FFTW_MPI_DEFAULT_BLOCK, &
-                                               scalarField_fourier,scalarField_real, &
-                                               PETSC_COMM_WORLD, FFTW_planner_flag)
-  if (.not. c_associated(planScalarBack)) error stop 'FFTW error'
+  planScalarForth = fftw_mpi_plan_dft_r2c_3d(cellsFFTW(3),cellsFFTW(2),cellsFFTW(1), &
+                                             scalarField_real,scalarField_fourier, &
+                                             PETSC_COMM_WORLD,FFTW_planner_flag)
+  if (.not. c_associated(planScalarForth)) error stop 'FFTW error r2c scalar'
+  planScalarBack  = fftw_mpi_plan_dft_c2r_3d(cellsFFTW(3),cellsFFTW(2),cellsFFTW(1), &
+                                             scalarField_fourier,scalarField_real, &
+                                             PETSC_COMM_WORLD,FFTW_planner_flag)
+  if (.not. c_associated(planScalarBack))  error stop 'FFTW error c2r scalar'
 
 !--------------------------------------------------------------------------------------------------
 ! calculation of discrete angular frequencies, ordered as in FFTW (wrap around)
@@ -349,6 +351,8 @@ subroutine spectral_utilities_init
   else                                                                                              ! precalculation of gamma_hat field
     allocate (gamma_hat(3,3,3,3,cells1Red,cells(2),cells3), source = cmplx(0.0_pReal,0.0_pReal,pReal))
   endif
+
+  call selfTest()
 
 end subroutine spectral_utilities_init
 
@@ -381,17 +385,17 @@ subroutine utilities_updateGamma(C)
           xiDyad_cmplx(l,m) = conjg(-xi1st(l,i,j,k-cells3Offset))*xi1st(m,i,j,k-cells3Offset)
         end do
         do concurrent(l = 1:3, m = 1:3)
-          temp33_cmplx(l,m) = sum(cmplx(C_ref(l,1:3,m,1:3),0.0_pReal)*xiDyad_cmplx)
+          temp33_cmplx(l,m) = sum(cmplx(C_ref(l,1:3,m,1:3),0.0_pReal,pReal)*xiDyad_cmplx)
         end do
 #else
         forall(l = 1:3, m = 1:3) &
           xiDyad_cmplx(l,m) = conjg(-xi1st(l,i,j,k-cells3Offset))*xi1st(m,i,j,k-cells3Offset)
         forall(l = 1:3, m = 1:3) &
-          temp33_cmplx(l,m) = sum(cmplx(C_ref(l,1:3,m,1:3),0.0_pReal)*xiDyad_cmplx)
+          temp33_cmplx(l,m) = sum(cmplx(C_ref(l,1:3,m,1:3),0.0_pReal,pReal)*xiDyad_cmplx)
 #endif
         A(1:3,1:3) = temp33_cmplx%re; A(4:6,4:6) =  temp33_cmplx%re
         A(1:3,4:6) = temp33_cmplx%im; A(4:6,1:3) = -temp33_cmplx%im
-        if (abs(math_det33(A(1:3,1:3))) > 1e-16) then
+        if (abs(math_det33(A(1:3,1:3))) > 1.e-16_pReal) then
           call math_invert(A_inv, err, A)
           temp33_cmplx = cmplx(A_inv(1:3,1:3),A_inv(1:3,4:6),pReal)
 #ifndef __INTEL_COMPILER
@@ -514,17 +518,17 @@ subroutine utilities_fourierGammaConvolution(fieldAim)
           xiDyad_cmplx(l,m) = conjg(-xi1st(l,i,j,k))*xi1st(m,i,j,k)
         end do
         do concurrent(l = 1:3, m = 1:3)
-          temp33_cmplx(l,m) = sum(cmplx(C_ref(l,1:3,m,1:3),0.0_pReal)*xiDyad_cmplx)
+          temp33_cmplx(l,m) = sum(cmplx(C_ref(l,1:3,m,1:3),0.0_pReal,pReal)*xiDyad_cmplx)
         end do
 #else
         forall(l = 1:3, m = 1:3) &
           xiDyad_cmplx(l,m) = conjg(-xi1st(l,i,j,k))*xi1st(m,i,j,k)
         forall(l = 1:3, m = 1:3) &
-          temp33_cmplx(l,m) = sum(cmplx(C_ref(l,1:3,m,1:3),0.0_pReal)*xiDyad_cmplx)
+          temp33_cmplx(l,m) = sum(cmplx(C_ref(l,1:3,m,1:3),0.0_pReal,pReal)*xiDyad_cmplx)
 #endif
         A(1:3,1:3) = temp33_cmplx%re; A(4:6,4:6) =  temp33_cmplx%re
         A(1:3,4:6) = temp33_cmplx%im; A(4:6,1:3) = -temp33_cmplx%im
-        if (abs(math_det33(A(1:3,1:3))) > 1e-16) then
+        if (abs(math_det33(A(1:3,1:3))) > 1.e-16_pReal) then
           call math_invert(A_inv, err, A)
           temp33_cmplx = cmplx(A_inv(1:3,1:3),A_inv(1:3,4:6),pReal)
 #ifndef __INTEL_COMPILER
@@ -583,8 +587,8 @@ subroutine utilities_fourierGreenConvolution(D_ref, mu_ref, Delta_t)
   !$OMP PARALLEL DO PRIVATE(GreenOp_hat)
   do k = 1, cells3; do j = 1, cells(2) ;do i = 1, cells1Red
     GreenOp_hat = cmplx(1.0_pReal,0.0_pReal,pReal) &
-                / (cmplx(mu_ref,0.0_pReal,pReal) + cmplx(Delta_t,0.0_pReal) &
-                   * sum(conjg(xi1st(1:3,i,j,k))* matmul(cmplx(D_ref,0.0_pReal),xi1st(1:3,i,j,k))))
+                / (cmplx(mu_ref,0.0_pReal,pReal) + cmplx(Delta_t,0.0_pReal,pReal) &
+                   * sum(conjg(xi1st(1:3,i,j,k))* matmul(cmplx(D_ref,0.0_pReal,pReal),xi1st(1:3,i,j,k))))
     scalarField_fourier(i,j,k) = scalarField_fourier(i,j,k)*GreenOp_hat
   enddo; enddo; enddo
   !$OMP END PARALLEL DO
@@ -604,7 +608,7 @@ real(pReal) function utilities_divergenceRMS()
   print'(/,1x,a)', '... calculating divergence ................................................'
   flush(IO_STDOUT)
 
-  rescaledGeom = cmplx(geomSize/scaledGeomSize,0.0_pReal)
+  rescaledGeom = cmplx(geomSize/scaledGeomSize,0.0_pReal,pReal)
 
 !--------------------------------------------------------------------------------------------------
 ! calculating RMS divergence criterion in Fourier space
@@ -648,7 +652,7 @@ real(pReal) function utilities_curlRMS()
   print'(/,1x,a)', '... calculating curl ......................................................'
   flush(IO_STDOUT)
 
-  rescaledGeom = cmplx(geomSize/scaledGeomSize,0.0_pReal)
+  rescaledGeom = cmplx(geomSize/scaledGeomSize,0.0_pReal,pReal)
 
 !--------------------------------------------------------------------------------------------------
 ! calculating max curl criterion in Fourier space
@@ -1145,5 +1149,42 @@ subroutine utilities_saveReferenceStiffness
   endif
 
 end subroutine utilities_saveReferenceStiffness
+
+
+!--------------------------------------------------------------------------------------------------
+!> @brief Check correctness of forward-backward transform.
+!--------------------------------------------------------------------------------------------------
+subroutine selfTest()
+
+  real(pReal), allocatable, dimension(:,:,:,:,:) :: tensorField_real_
+  real(pReal), allocatable, dimension(:,:,:,:) :: vectorField_real_
+  real(pReal), allocatable, dimension(:,:,:) :: scalarField_real_
+
+
+  call random_number(tensorField_real)
+  tensorField_real(1:3,1:3,cells(1)+1:cells1Red*2,:,:) = 0.0_pReal
+  tensorField_real_ = tensorField_real
+  call utilities_FFTtensorForward()
+  call utilities_FFTtensorBackward()
+  tensorField_real(1:3,1:3,cells(1)+1:cells1Red*2,:,:) = 0.0_pReal
+  if (maxval(abs(tensorField_real_ - tensorField_real))>5.0e-15_pReal) error stop 'tensorField'
+
+  call random_number(vectorField_real)
+  vectorField_real(1:3,cells(1)+1:cells1Red*2,:,:) = 0.0_pReal
+  vectorField_real_ = vectorField_real
+  call utilities_FFTvectorForward()
+  call utilities_FFTvectorBackward()
+  vectorField_real(1:3,cells(1)+1:cells1Red*2,:,:) = 0.0_pReal
+  if (maxval(abs(vectorField_real_ - vectorField_real))>5.0e-15_pReal) error stop 'vectorField'
+
+  call random_number(scalarField_real)
+  scalarField_real(cells(1)+1:cells1Red*2,:,:) = 0.0_pReal
+  scalarField_real_ = scalarField_real
+  call utilities_FFTscalarForward()
+  call utilities_FFTscalarBackward()
+  scalarField_real(cells(1)+1:cells1Red*2,:,:) = 0.0_pReal
+  if (maxval(abs(scalarField_real_ - scalarField_real))>5.0e-15_pReal) error stop 'scalarField'
+
+end subroutine selfTest
 
 end module spectral_utilities

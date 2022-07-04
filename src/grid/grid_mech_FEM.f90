@@ -15,7 +15,7 @@ module grid_mechanical_FEM
 
   use prec
   use parallelization
-  use DAMASK_interface
+  use CLI
   use IO
   use HDF5
   use HDF5_utilities
@@ -115,6 +115,8 @@ subroutine grid_mechanical_FEM_init
   class(tNode), pointer :: &
     num_grid, &
     debug_grid
+  character(len=pStringLen) :: &
+    extmsg = ''
 
   print'(/,1x,a)', '<<<+-  grid_mechanical_FEM init  -+>>>'; flush(IO_STDOUT)
 
@@ -134,12 +136,14 @@ subroutine grid_mechanical_FEM_init
   num%itmin           = num_grid%get_asInt  ('itmin',defaultVal=1)
   num%itmax           = num_grid%get_asInt  ('itmax',defaultVal=250)
 
-  if (num%eps_div_atol <= 0.0_pReal)             call IO_error(301,ext_msg='eps_div_atol')
-  if (num%eps_div_rtol < 0.0_pReal)              call IO_error(301,ext_msg='eps_div_rtol')
-  if (num%eps_stress_atol <= 0.0_pReal)          call IO_error(301,ext_msg='eps_stress_atol')
-  if (num%eps_stress_rtol < 0.0_pReal)           call IO_error(301,ext_msg='eps_stress_rtol')
-  if (num%itmax <= 1)                            call IO_error(301,ext_msg='itmax')
-  if (num%itmin > num%itmax .or. num%itmin < 1)  call IO_error(301,ext_msg='itmin')
+  if (num%eps_div_atol <= 0.0_pReal)             extmsg = trim(extmsg)//' eps_div_atol'
+  if (num%eps_div_rtol < 0.0_pReal)              extmsg = trim(extmsg)//' eps_div_rtol'
+  if (num%eps_stress_atol <= 0.0_pReal)          extmsg = trim(extmsg)//' eps_stress_atol'
+  if (num%eps_stress_rtol < 0.0_pReal)           extmsg = trim(extmsg)//' eps_stress_rtol'
+  if (num%itmax <= 1)                            extmsg = trim(extmsg)//' itmax'
+  if (num%itmin > num%itmax .or. num%itmin < 1)  extmsg = trim(extmsg)//' itmin'
+
+  if (extmsg /= '') call IO_error(301,ext_msg=trim(extmsg))
 
 !--------------------------------------------------------------------------------------------------
 ! set default and user defined options for PETSc
@@ -217,22 +221,22 @@ subroutine grid_mechanical_FEM_init
   delta = geomSize/real(cells,pReal)                                                                ! grid spacing
   detJ = product(delta)                                                                             ! cell volume
 
-  BMat = reshape(real([-1.0_pReal/delta(1),-1.0_pReal/delta(2),-1.0_pReal/delta(3), &
-                        1.0_pReal/delta(1),-1.0_pReal/delta(2),-1.0_pReal/delta(3), &
-                       -1.0_pReal/delta(1), 1.0_pReal/delta(2),-1.0_pReal/delta(3), &
-                        1.0_pReal/delta(1), 1.0_pReal/delta(2),-1.0_pReal/delta(3), &
-                       -1.0_pReal/delta(1),-1.0_pReal/delta(2), 1.0_pReal/delta(3), &
-                        1.0_pReal/delta(1),-1.0_pReal/delta(2), 1.0_pReal/delta(3), &
-                       -1.0_pReal/delta(1), 1.0_pReal/delta(2), 1.0_pReal/delta(3), &
-                        1.0_pReal/delta(1), 1.0_pReal/delta(2), 1.0_pReal/delta(3)],pReal), [3,8])/4.0_pReal ! shape function derivative matrix
+  BMat = reshape(real([-delta(1)**(-1),-delta(2)**(-1),-delta(3)**(-1), &
+                        delta(1)**(-1),-delta(2)**(-1),-delta(3)**(-1), &
+                       -delta(1)**(-1), delta(2)**(-1),-delta(3)**(-1), &
+                        delta(1)**(-1), delta(2)**(-1),-delta(3)**(-1), &
+                       -delta(1)**(-1),-delta(2)**(-1), delta(3)**(-1), &
+                        delta(1)**(-1),-delta(2)**(-1), delta(3)**(-1), &
+                       -delta(1)**(-1), delta(2)**(-1), delta(3)**(-1), &
+                        delta(1)**(-1), delta(2)**(-1), delta(3)**(-1)],pReal), [3,8])/4.0_pReal    ! shape function derivative matrix
 
   HGMat = matmul(transpose(HGcomp),HGcomp) &
         * HGCoeff*(delta(1)*delta(2) + delta(2)*delta(3) + delta(3)*delta(1))/16.0_pReal            ! hourglass stabilization matrix
 
 !--------------------------------------------------------------------------------------------------
 ! init fields
-  restartRead: if (interface_restartInc > 0) then
-    print'(/,1x,a,i0,a)', 'reading restart data of increment ', interface_restartInc, ' from file'
+  restartRead: if (CLI_restartInc > 0) then
+    print'(/,1x,a,i0,a)', 'reading restart data of increment ', CLI_restartInc, ' from file'
 
     fileHandle  = HDF5_openFile(getSolverJobName()//'_restart.hdf5','r')
     groupHandle = HDF5_openGroup(fileHandle,'solver')
@@ -254,7 +258,7 @@ subroutine grid_mechanical_FEM_init
     call HDF5_read(u_current,groupHandle,'u')
     call HDF5_read(u_lastInc,groupHandle,'u_lastInc')
 
-  elseif (interface_restartInc == 0) then restartRead
+  elseif (CLI_restartInc == 0) then restartRead
     F_lastInc = spread(spread(spread(math_I3,3,cells(1)),4,cells(2)),5,cells3)                      ! initialize to identity
     F         = spread(spread(spread(math_I3,3,cells(1)),4,cells(2)),5,cells3)
   endif restartRead
@@ -269,8 +273,8 @@ subroutine grid_mechanical_FEM_init
   call DMDAVecRestoreArrayF90(mechanical_grid,solution_lastInc,u_lastInc,err_PETSc)
   CHKERRQ(err_PETSc)
 
-  restartRead2: if (interface_restartInc > 0) then
-    print'(1x,a,i0,a)', 'reading more restart data of increment ', interface_restartInc, ' from file'
+  restartRead2: if (CLI_restartInc > 0) then
+    print'(1x,a,i0,a)', 'reading more restart data of increment ', CLI_restartInc, ' from file'
     call HDF5_read(C_volAvg,groupHandle,'C_volAvg',.false.)
     call MPI_Bcast(C_volAvg,81_MPI_INTEGER_KIND,MPI_DOUBLE,0_MPI_INTEGER_KIND,MPI_COMM_WORLD,err_MPI)
     if(err_MPI /= 0_MPI_INTEGER_KIND) error stop 'MPI error'
@@ -652,7 +656,7 @@ subroutine formJacobian(da_local,x_local,Jac_pre,Jac,dummy,err_PETSc)
   MatNullSpace                         :: matnull
   PetscErrorCode                       :: err_PETSc
 
-  BMatFull = 0.0
+  BMatFull = 0.0_pReal
   BMatFull(1:3,1 :8 ) = BMat
   BMatFull(4:6,9 :16) = BMat
   BMatFull(7:9,17:24) = BMat
@@ -682,7 +686,7 @@ subroutine formJacobian(da_local,x_local,Jac_pre,Jac,dummy,err_PETSc)
     enddo; enddo; enddo
     row = col
     ce = ce + 1
-    K_ele = 0.0
+    K_ele = 0.0_pReal
     K_ele(1 :8 ,1 :8 ) = HGMat*(homogenization_dPdF(1,1,1,1,ce) + &
                                 homogenization_dPdF(2,2,2,2,ce) + &
                                 homogenization_dPdF(3,3,3,3,ce))/3.0_pReal

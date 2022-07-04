@@ -88,7 +88,7 @@ module subroutine RGC_init()
 
   print'(/,1x,a)', '<<<+-  homogenization:mechanical:RGC init  -+>>>'
 
-  print'(/,a,i0)', ' # homogenizations: ',count(homogenization_type == HOMOGENIZATION_RGC_ID)
+  print'(/,a,i0)', ' # homogenizations: ',count(mechanical_type == MECHANICAL_RGC_ID)
   flush(IO_STDOUT)
 
   print'(/,1x,a)', 'D.D. Tjahjanto et al., International Journal of Material Forming 2(1):939–942, 2009'
@@ -137,8 +137,8 @@ module subroutine RGC_init()
   if (num%volDiscrPow <= 0.0_pReal)  call IO_error(301,ext_msg='volDiscrPw_RGC')
 
 
-  do ho = 1, size(homogenization_type)
-    if (homogenization_type(ho) /= HOMOGENIZATION_RGC_ID) cycle
+  do ho = 1, size(mechanical_type)
+    if (mechanical_type(ho) /= MECHANICAL_RGC_ID) cycle
     homog => material_homogenization%get(ho)
     homogMech => homog%get('mechanical')
     associate(prm => param(ho), &
@@ -561,7 +561,7 @@ module function RGC_updateState(P,F,avgF,dt,dPdF,ce) result(doneAndHappy)
                                                 *cosh(prm%c_alpha*nDefNorm) &
                                                 *0.5_pReal*nVect(l)*nDef(i,k)/nDefNorm*math_LeviCivita(k,l,j) &
                                                 *tanh(nDefNorm/num%xSmoo)
-       end do; end do;enddo; end do
+       end do; end do;end do; end do
      end do interfaceLoop
 
 
@@ -601,9 +601,9 @@ module function RGC_updateState(P,F,avgF,dt,dPdF,ce) result(doneAndHappy)
     ! calculate the stress and penalty due to volume discrepancy
     vPen      = 0.0_pReal
     do i = 1,nGrain
-      vPen(:,:,i) = -1.0_pReal/real(nGrain,pReal)*num%volDiscrMod*num%volDiscrPow/num%maxVolDiscr* &
-                         sign((abs(vDiscrep)/num%maxVolDiscr)**(num%volDiscrPow - 1.0),vDiscrep)* &
-                         gVol(i)*transpose(math_inv33(fDef(:,:,i)))
+      vPen(:,:,i) = -real(nGrain,pReal)**(-1)*num%volDiscrMod*num%volDiscrPow/num%maxVolDiscr &
+                  * sign((abs(vDiscrep)/num%maxVolDiscr)**(num%volDiscrPow - 1.0_pReal),vDiscrep) &
+                  * gVol(i)*transpose(math_inv33(fDef(:,:,i)))
     end do
 
   end subroutine volumePenalty

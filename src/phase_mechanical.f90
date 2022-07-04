@@ -210,7 +210,6 @@ module subroutine mechanical_init(phases)
     Nmembers
   class(tNode), pointer :: &
     num_crystallite, &
-
     phase, &
     mech
 
@@ -239,11 +238,8 @@ module subroutine mechanical_init(phases)
 
     allocate(phase_mechanical_Fe(ph)%data(3,3,Nmembers))
     allocate(phase_mechanical_Fi(ph)%data(3,3,Nmembers))
-    allocate(phase_mechanical_Fi0(ph)%data(3,3,Nmembers))
     allocate(phase_mechanical_Fp(ph)%data(3,3,Nmembers))
-    allocate(phase_mechanical_Fp0(ph)%data(3,3,Nmembers))
     allocate(phase_mechanical_F(ph)%data(3,3,Nmembers))
-    allocate(phase_mechanical_F0(ph)%data(3,3,Nmembers))
     allocate(phase_mechanical_Li(ph)%data(3,3,Nmembers),source=0.0_pReal)
     allocate(phase_mechanical_Li0(ph)%data(3,3,Nmembers),source=0.0_pReal)
     allocate(phase_mechanical_Lp(ph)%data(3,3,Nmembers),source=0.0_pReal)
@@ -259,30 +255,26 @@ module subroutine mechanical_init(phases)
 #else
     output_mechanical(ph)%label = mech%get_as1dString('output',defaultVal=emptyStringArray)
 #endif
-  enddo
+  end do
 
   do ce = 1, size(material_phaseID,2)
     ma = discretization_materialAt((ce-1)/discretization_nIPs+1)
     do co = 1,homogenization_Nconstituents(material_homogenizationID(ce))
       ph = material_phaseID(co,ce)
-      phase_mechanical_Fi0(ph)%data(1:3,1:3,material_phaseEntry(co,ce)) = material_F_i_0(ma)%data(1:3,1:3,co)
-    enddo
-  enddo
+      en = material_phaseEntry(co,ce)
+      phase_mechanical_F(ph)%data(1:3,1:3,en)  = math_I3
+      phase_mechanical_Fp(ph)%data(1:3,1:3,en) = material_O_0(ma)%data(co)%asMatrix()              ! Fp reflects initial orientation (see 10.1016/j.actamat.2006.01.005)
+      phase_mechanical_Fe(ph)%data(1:3,1:3,en) = matmul(material_V_e_0(ma)%data(1:3,1:3,co), &
+                                                        transpose(phase_mechanical_Fp(ph)%data(1:3,1:3,en)))
+      phase_mechanical_Fi(ph)%data(1:3,1:3,en) = material_O_0(ma)%data(co)%rotate(math_inv33(material_V_e_0(ma)%data(1:3,1:3,co)))
+    end do
+  end do
 
   do ph = 1, phases%length
-    do en = 1, count(material_phaseID == ph)
-
-      phase_mechanical_Fp0(ph)%data(1:3,1:3,en) = phase_O_0(ph)%data(en)%asMatrix()                 ! Fp reflects initial orientation (see 10.1016/j.actamat.2006.01.005)
-      phase_mechanical_Fp0(ph)%data(1:3,1:3,en) = phase_mechanical_Fp0(ph)%data(1:3,1:3,en) &
-                                                / math_det33(phase_mechanical_Fp0(ph)%data(1:3,1:3,en))**(1.0_pReal/3.0_pReal)
-      phase_mechanical_F0(ph)%data(1:3,1:3,en) = math_I3
-      phase_mechanical_Fe(ph)%data(1:3,1:3,en) = math_inv33(matmul(phase_mechanical_Fi0(ph)%data(1:3,1:3,en), &
-                                                                   phase_mechanical_Fp0(ph)%data(1:3,1:3,en)))  ! assuming that euler angles are given in internal strain free configuration
-    enddo
-    phase_mechanical_Fp(ph)%data = phase_mechanical_Fp0(ph)%data
-    phase_mechanical_Fi(ph)%data = phase_mechanical_Fi0(ph)%data
-    phase_mechanical_F(ph)%data  = phase_mechanical_F0(ph)%data
-  enddo
+    phase_mechanical_F0(ph)%data  = phase_mechanical_F(ph)%data
+    phase_mechanical_Fp0(ph)%data = phase_mechanical_Fp(ph)%data
+    phase_mechanical_Fi0(ph)%data = phase_mechanical_Fi(ph)%data
+  end do
 
 
   call elastic_init(phases)
@@ -292,7 +284,7 @@ module subroutine mechanical_init(phases)
   call plastic_init()
   do ph = 1,phases%length
     plasticState(ph)%state0 = plasticState(ph)%state
-  enddo
+  end do
 
   num_crystallite => config_numerics%get('crystallite',defaultVal=emptyDict)
 
@@ -317,7 +309,6 @@ module subroutine mechanical_init(phases)
      call IO_error(301,ext_msg='integrator')
 
   end select
-
 
   call eigen_init(phases)
 
@@ -482,25 +473,25 @@ function integrateStress(F,subFp0,subFi0,Delta_t,ph,en) result(broken)
         Lpguess      = Lpguess_old &
                      + deltaLp * stepLengthLp
         cycle LpLoop
-      endif
+      end if
 
       calculateJacobiLp: if (mod(jacoCounterLp, num%iJacoLpresiduum) == 0) then
         jacoCounterLp = jacoCounterLp + 1
 
         do o=1,3; do p=1,3
           dFe_dLp(o,1:3,p,1:3) = - Delta_t * A(o,p)*transpose(invFi_new)                            ! dFe_dLp(i,j,k,l) = -Delta_t * A(i,k) invFi(l,j)
-        enddo; enddo
+        end do; end do
         dRLp_dLp = math_eye(9) &
                  - math_3333to99(math_mul3333xx3333(math_mul3333xx3333(dLp_dS,dS_dFe),dFe_dLp))
         temp_9 = math_33to9(residuumLp)
         call dgesv(9,1,dRLp_dLp,9,devNull_9,temp_9,9,ierr)                                          ! solve dRLp/dLp * delta Lp = -res for delta Lp
         if (ierr /= 0) return ! error
         deltaLp = - math_9to33(temp_9)
-      endif calculateJacobiLp
+      end if calculateJacobiLp
 
       Lpguess = Lpguess &
               + deltaLp * steplengthLp
-    enddo LpLoop
+    end do LpLoop
 
     call phase_LiAndItsTangents(Li_constitutive, dLi_dS, dLi_dFi, &
                                 S, Fi_new, ph,en)
@@ -522,7 +513,7 @@ function integrateStress(F,subFp0,subFi0,Delta_t,ph,en) result(broken)
       Liguess      = Liguess_old &
                    + deltaLi * steplengthLi
       cycle LiLoop
-    endif
+    end if
 
     calculateJacobiLi: if (mod(jacoCounterLi, num%iJacoLpresiduum) == 0) then
       jacoCounterLi = jacoCounterLi + 1
@@ -531,10 +522,10 @@ function integrateStress(F,subFp0,subFi0,Delta_t,ph,en) result(broken)
       do o=1,3; do p=1,3
         dFe_dLi(1:3,o,1:3,p) = -Delta_t*math_I3(o,p)*temp_33                                        ! dFe_dLp(i,j,k,l) = -Delta_t * A(i,k) invFi(l,j)
         dFi_dLi(1:3,o,1:3,p) = -Delta_t*math_I3(o,p)*invFi_current
-      enddo; enddo
+      end do; end do
       do o=1,3; do p=1,3
         dFi_dLi(1:3,1:3,o,p) = matmul(matmul(Fi_new,dFi_dLi(1:3,1:3,o,p)),Fi_new)
-      enddo; enddo
+      end do; end do
       dRLi_dLi  = math_eye(9) &
                 - math_3333to99(math_mul3333xx3333(dLi_dS,  math_mul3333xx3333(dS_dFe, dFe_dLi) &
                                                           + math_mul3333xx3333(dS_dFi, dFi_dLi)))  &
@@ -543,11 +534,11 @@ function integrateStress(F,subFp0,subFi0,Delta_t,ph,en) result(broken)
       call dgesv(9,1,dRLi_dLi,9,devNull_9,temp_9,9,ierr)                                            ! solve dRLi/dLp * delta Li = -res for delta Li
       if (ierr /= 0) return ! error
       deltaLi = - math_9to33(temp_9)
-    endif calculateJacobiLi
+    end if calculateJacobiLi
 
     Liguess = Liguess &
             + deltaLi * steplengthLi
-  enddo LiLoop
+  end do LiLoop
 
   invFp_new = matmul(invFp_current,B)
   call math_invert33(Fp_new,devNull,error,invFp_new)
@@ -602,7 +593,7 @@ function integrateStateFPI(F_0,F,subFp0,subFi0,subState0,Delta_t,ph,en) result(b
 
   iteration: do NiterationState = 1, num%nState
 
-    dotState_last(1:sizeDotState,2) = merge(dotState_last(1:sizeDotState,1),0.0, nIterationState > 1)
+    dotState_last(1:sizeDotState,2) = merge(dotState_last(1:sizeDotState,1),0.0_pReal, nIterationState > 1)
     dotState_last(1:sizeDotState,1) = dotState
 
     broken = integrateStress(F,subFp0,subFi0,Delta_t,ph,en)
@@ -622,9 +613,9 @@ function integrateStateFPI(F_0,F,subFp0,subFi0,subState0,Delta_t,ph,en) result(b
     if (converged(r,plasticState(ph)%state(1:sizeDotState,en),plasticState(ph)%atol(1:sizeDotState))) then
       broken = plastic_deltaState(ph,en)
       exit iteration
-    endif
+    end if
 
-  enddo iteration
+  end do iteration
 
 
   contains
@@ -647,7 +638,7 @@ function integrateStateFPI(F_0,F,subFp0,subFi0,subState0,Delta_t,ph,en) result(b
       damper = 0.75_pReal + 0.25_pReal * tanh(2.0_pReal + 4.0_pReal * dot_prod12 / dot_prod22)
     else
       damper = 1.0_pReal
-    endif
+    end if
 
   end function damper
 
@@ -680,8 +671,11 @@ function integrateStateEuler(F_0,F,subFp0,subFi0,subState0,Delta_t,ph,en) result
   if (any(IEEE_is_NaN(dotState))) return
 
   sizeDotState = plasticState(ph)%sizeDotState
-  plasticState(ph)%state(1:sizeDotState,en) = subState0 &
-                                            + dotState * Delta_t
+#ifndef __INTEL_LLVM_COMPILER
+  plasticState(ph)%state(1:sizeDotState,en) = subState0 + dotState*Delta_t
+#else
+  plasticState(ph)%state(1:sizeDotState,en) = IEEE_FMA(dotState,Delta_t,subState0)
+#endif
 
   broken = plastic_deltaState(ph,en)
   if(broken) return
@@ -720,8 +714,11 @@ function integrateStateAdaptiveEuler(F_0,F,subFp0,subFi0,subState0,Delta_t,ph,en
   sizeDotState = plasticState(ph)%sizeDotState
 
   r = - dotState * 0.5_pReal * Delta_t
-  plasticState(ph)%state(1:sizeDotState,en) = subState0 &
-                                            + dotState * Delta_t
+#ifndef __INTEL_LLVM_COMPILER
+  plasticState(ph)%state(1:sizeDotState,en) = subState0 + dotState*Delta_t
+#else
+  plasticState(ph)%state(1:sizeDotState,en) = IEEE_FMA(dotState,Delta_t,subState0)
+#endif
 
   broken = plastic_deltaState(ph,en)
   if(broken) return
@@ -759,7 +756,7 @@ function integrateStateRK4(F_0,F,subFp0,subFi0,subState0,Delta_t,ph,en) result(b
   real(pReal), dimension(3), parameter :: &
     C = [0.5_pReal, 0.5_pReal, 1.0_pReal]
   real(pReal), dimension(4), parameter :: &
-    B = [1.0_pReal/6.0_pReal, 1.0_pReal/3.0_pReal, 1.0_pReal/3.0_pReal, 1.0_pReal/6.0_pReal]
+    B = [6.0_pReal, 3.0_pReal, 3.0_pReal, 6.0_pReal]**(-1)
 
 
   broken = integrateStateRK(F_0,F,subFp0,subFi0,subState0,Delta_t,ph,en,A,B,C)
@@ -842,12 +839,18 @@ function integrateStateRK(F_0,F,subFp0,subFi0,subState0,Delta_t,ph,en,A,B,C,DB) 
     dotState = A(1,stage) * plastic_RKdotState(1:sizeDotState,1)
 
     do n = 2, stage
-      dotState = dotState &
-               + A(n,stage) * plastic_RKdotState(1:sizeDotState,n)
-    enddo
+#ifndef __INTEL_LLVM_COMPILER
+      dotState = dotState + A(n,stage)*plastic_RKdotState(1:sizeDotState,n)
+#else
+      dotState = IEEE_FMA(A(n,stage),plastic_RKdotState(1:sizeDotState,n),dotState)
+#endif
+    end do
 
-    plasticState(ph)%state(1:sizeDotState,en) = subState0 &
-                                              + dotState * Delta_t
+#ifndef __INTEL_LLVM_COMPILER
+    plasticState(ph)%state(1:sizeDotState,en) = subState0 + dotState*Delta_t
+#else
+    plasticState(ph)%state(1:sizeDotState,en) = IEEE_FMA(dotState,Delta_t,subState0)
+#endif
 
     broken = integrateStress(F_0+(F-F_0)*Delta_t*C(stage),subFp0,subFi0,Delta_t*C(stage), ph,en)
     if(broken) exit
@@ -855,14 +858,17 @@ function integrateStateRK(F_0,F,subFp0,subFi0,subState0,Delta_t,ph,en,A,B,C,DB) 
     dotState = plastic_dotState(Delta_t*C(stage), ph,en)
     if (any(IEEE_is_NaN(dotState))) exit
 
-  enddo
+  end do
   if(broken) return
 
 
   plastic_RKdotState(1:sizeDotState,size(B)) = dotState
   dotState = matmul(plastic_RKdotState,B)
-  plasticState(ph)%state(1:sizeDotState,en) = subState0 &
-                                            + dotState * Delta_t
+#ifndef __INTEL_LLVM_COMPILER
+  plasticState(ph)%state(1:sizeDotState,en) = subState0 + dotState*Delta_t
+#else
+  plasticState(ph)%state(1:sizeDotState,en) = IEEE_FMA(dotState,Delta_t,subState0)
+#endif
 
   if(present(DB)) &
     broken = .not. converged(matmul(plastic_RKdotState(1:sizeDotState,1:size(DB)),DB) * Delta_t, &
@@ -920,11 +926,11 @@ subroutine results(group,ph)
         call results_writeDataset(phase_mechanical_S(ph)%data,group//'/mechanical/','S', &
                                  'second Piola-Kirchhoff stress','Pa')
       case('O')
-        call results_writeDataset(to_quaternion(phase_O(ph)%data),group//'/mechanical',output_mechanical(ph)%label(ou),&
+        call results_writeDataset(to_quaternion(phase_O(ph)%data),group//'/mechanical','O', &
                                  'crystal orientation as quaternion','q_0 (q_1 q_2 q_3)')
-        call results_addAttribute('lattice',phase_lattice(ph),group//'/mechanical/'//output_mechanical(ph)%label(ou))
+        call results_addAttribute('lattice',phase_lattice(ph),group//'/mechanical/O')
         if (any(phase_lattice(ph) == ['hP', 'tI'])) &
-          call results_addAttribute('c/a',phase_cOverA(ph),group//'/mechanical/'//output_mechanical(ph)%label(ou))
+          call results_addAttribute('c/a',phase_cOverA(ph),group//'/mechanical/O')
     end select
   end do
 
@@ -944,7 +950,7 @@ subroutine results(group,ph)
 
     do i = 1, size(dataset,1)
       to_quaternion(:,i) = dataset(i)%asQuaternion()
-    enddo
+    end do
 
  end function to_quaternion
 
@@ -968,7 +974,7 @@ module subroutine mechanical_forward()
     phase_mechanical_Lp0(ph) = phase_mechanical_Lp(ph)
     phase_mechanical_S0(ph)  = phase_mechanical_S(ph)
     plasticState(ph)%state0 = plasticState(ph)%state
-  enddo
+  end do
 
 end subroutine mechanical_forward
 
@@ -1031,7 +1037,7 @@ module function phase_mechanical_constitutive(Delta_t,co,ce) result(converged_)
         subFp0 = phase_mechanical_Fp(ph)%data(1:3,1:3,en)
         subFi0 = phase_mechanical_Fi(ph)%data(1:3,1:3,en)
         subState0 = plasticState(ph)%state(:,en)
-      endif
+      end if
 !--------------------------------------------------------------------------------------------------
 !  cut back (reduced time and restore)
     else
@@ -1042,10 +1048,10 @@ module function phase_mechanical_constitutive(Delta_t,co,ce) result(converged_)
       if (subStep < 1.0_pReal) then                                                                 ! actual (not initial) cutback
         phase_mechanical_Lp(ph)%data(1:3,1:3,en) = subLp0
         phase_mechanical_Li(ph)%data(1:3,1:3,en) = subLi0
-      endif
+      end if
       plasticState(ph)%state(:,en) = subState0
       todo = subStep > num%subStepMinCryst                                                          ! still on track or already done (beyond repair)
-    endif
+    end if
 
 !--------------------------------------------------------------------------------------------------
 !  prepare for integration
@@ -1054,9 +1060,9 @@ module function phase_mechanical_constitutive(Delta_t,co,ce) result(converged_)
       subF = subF0 &
            + subStep * (phase_mechanical_F(ph)%data(1:3,1:3,en) - phase_mechanical_F0(ph)%data(1:3,1:3,en))
       converged_ = .not. integrateState(subF0,subF,subFp0,subFi0,subState0(1:sizeDotState),subStep * Delta_t,ph,en)
-    endif
+    end if
 
-  enddo cutbackLooping
+  end do cutbackLooping
 
 end function phase_mechanical_constitutive
 
@@ -1080,14 +1086,14 @@ module subroutine mechanical_restore(ce,includeL)
     if (includeL) then
       phase_mechanical_Lp(ph)%data(1:3,1:3,en) = phase_mechanical_Lp0(ph)%data(1:3,1:3,en)
       phase_mechanical_Li(ph)%data(1:3,1:3,en) = phase_mechanical_Li0(ph)%data(1:3,1:3,en)
-    endif                                                                                           ! maybe protecting everything from overwriting makes more sense
+    end if                                                                                           ! maybe protecting everything from overwriting makes more sense
 
     phase_mechanical_Fp(ph)%data(1:3,1:3,en)   = phase_mechanical_Fp0(ph)%data(1:3,1:3,en)
     phase_mechanical_Fi(ph)%data(1:3,1:3,en)   = phase_mechanical_Fi0(ph)%data(1:3,1:3,en)
     phase_mechanical_S(ph)%data(1:3,1:3,en)    = phase_mechanical_S0(ph)%data(1:3,1:3,en)
 
     plasticState(ph)%state(:,en) = plasticState(ph)%State0(:,en)
-  enddo
+  end do
 
 end subroutine mechanical_restore
 
@@ -1146,23 +1152,29 @@ module function phase_mechanical_dPdF(Delta_t,co,ce) result(dPdF)
   else
     lhs_3333 = 0.0_pReal; rhs_3333 = 0.0_pReal
     do o=1,3; do p=1,3
+#ifndef __INTEL_LLVM_COMPILER
       lhs_3333(1:3,1:3,o,p) = lhs_3333(1:3,1:3,o,p) &
                             + matmul(invSubFi0,dLidFi(1:3,1:3,o,p)) * Delta_t
       lhs_3333(1:3,o,1:3,p) = lhs_3333(1:3,o,1:3,p) &
                             + invFi*invFi(p,o)
       rhs_3333(1:3,1:3,o,p) = rhs_3333(1:3,1:3,o,p) &
                             - matmul(invSubFi0,dLidS(1:3,1:3,o,p)) * Delta_t
-    enddo; enddo
+#else
+      lhs_3333(1:3,1:3,o,p) = IEEE_FMA(matmul(invSubFi0,dLidFi(1:3,1:3,o,p)),Delta_t,lhs_3333(1:3,1:3,o,p))
+      lhs_3333(1:3,o,1:3,p) = IEEE_FMA(invFi,invFi(p,o),lhs_3333(1:3,o,1:3,p))
+      rhs_3333(1:3,1:3,o,p) = IEEE_FMA(matmul(invSubFi0,dLidS(1:3,1:3,o,p)),-Delta_t,rhs_3333(1:3,1:3,o,p))
+#endif
+    end do; end do
     call math_invert(temp_99,error,math_3333to99(lhs_3333))
     if (error) then
-      call IO_warning(warning_ID=600, &
-                      ext_msg='inversion error in analytic tangent calculation')
+      call IO_warning(600,'inversion error in analytic tangent calculation', &
+                      label1='phase',ID1=ph,label2='entry',ID2=en)
       dFidS = 0.0_pReal
     else
       dFidS = math_mul3333xx3333(math_99to3333(temp_99),rhs_3333)
-    endif
+    end if
     dLidS = math_mul3333xx3333(dLidFi,dFidS) + dLidS
-  endif
+  end if
 
   call plastic_LpAndItsTangents(devNull,dLpdS,dLpdFi, &
                                              phase_mechanical_S(ph)%data(1:3,1:3,en), &
@@ -1179,25 +1191,29 @@ module function phase_mechanical_dPdF(Delta_t,co,ce) result(dPdF)
     rhs_3333(p,o,1:3,1:3)  = matmul(dSdFe(p,o,1:3,1:3),temp_33_1)
     temp_3333(1:3,1:3,p,o) = matmul(matmul(temp_33_2,dLpdS(1:3,1:3,p,o)), invFi) &
                            + matmul(temp_33_3,dLidS(1:3,1:3,p,o))
-  enddo; enddo
+  end do; end do
+#ifndef __INTEL_LLVM_COMPILER
   lhs_3333 = math_mul3333xx3333(dSdFe,temp_3333) * Delta_t &
            + math_mul3333xx3333(dSdFi,dFidS)
+#else
+  lhs_3333 = IEEE_FMA(math_mul3333xx3333(dSdFe,temp_3333),Delta_t,math_mul3333xx3333(dSdFi,dFidS))
+#endif
 
   call math_invert(temp_99,error,math_eye(9)+math_3333to99(lhs_3333))
   if (error) then
-    call IO_warning(warning_ID=600, &
-                    ext_msg='inversion error in analytic tangent calculation')
+    call IO_warning(600,'inversion error in analytic tangent calculation', &
+                    label1='phase',ID1=ph,label2='entry',ID2=en)
     dSdF = rhs_3333
   else
     dSdF = math_mul3333xx3333(math_99to3333(temp_99),rhs_3333)
-  endif
+  end if
 
 !--------------------------------------------------------------------------------------------------
 ! calculate dFpinvdF
   temp_3333 = math_mul3333xx3333(dLpdS,dSdF)
   do o=1,3; do p=1,3
     dFpinvdF(1:3,1:3,p,o) = - matmul(invSubFp0, matmul(temp_3333(1:3,1:3,p,o),invFi)) * Delta_t
-  enddo; enddo
+  end do; end do
 
 !--------------------------------------------------------------------------------------------------
 ! assemble dPdF
@@ -1208,17 +1224,20 @@ module function phase_mechanical_dPdF(Delta_t,co,ce) result(dPdF)
   dPdF = 0.0_pReal
   do p=1,3
     dPdF(p,1:3,p,1:3) = transpose(matmul(invFp,temp_33_1))
-  enddo
+  end do
   do o=1,3; do p=1,3
     dPdF(1:3,1:3,p,o) = dPdF(1:3,1:3,p,o) &
                       + matmul(matmul(phase_mechanical_F(ph)%data(1:3,1:3,en),dFpinvdF(1:3,1:3,p,o)),temp_33_1) &
                       + matmul(matmul(temp_33_2,dSdF(1:3,1:3,p,o)),transpose(invFp)) &
                       + matmul(temp_33_3,transpose(dFpinvdF(1:3,1:3,p,o)))
-  enddo; enddo
+  end do; end do
 
 end function phase_mechanical_dPdF
 
 
+!--------------------------------------------------------------------------------------------------
+!< @brief Write restart information to file.
+!--------------------------------------------------------------------------------------------------
 module subroutine mechanical_restartWrite(groupHandle,ph)
 
   integer(HID_T), intent(in) :: groupHandle
@@ -1226,16 +1245,19 @@ module subroutine mechanical_restartWrite(groupHandle,ph)
 
 
   call HDF5_write(plasticState(ph)%state,groupHandle,'omega_plastic')
-  call HDF5_write(phase_mechanical_Fi(ph)%data,groupHandle,'F_i')
-  call HDF5_write(phase_mechanical_Li(ph)%data,groupHandle,'L_i')
-  call HDF5_write(phase_mechanical_Lp(ph)%data,groupHandle,'L_p')
-  call HDF5_write(phase_mechanical_Fp(ph)%data,groupHandle,'F_p')
   call HDF5_write(phase_mechanical_S(ph)%data,groupHandle,'S')
   call HDF5_write(phase_mechanical_F(ph)%data,groupHandle,'F')
+  call HDF5_write(phase_mechanical_Fp(ph)%data,groupHandle,'F_p')
+  call HDF5_write(phase_mechanical_Fi(ph)%data,groupHandle,'F_i')
+  call HDF5_write(phase_mechanical_Lp(ph)%data,groupHandle,'L_p')
+  call HDF5_write(phase_mechanical_Li(ph)%data,groupHandle,'L_i')
 
 end subroutine mechanical_restartWrite
 
 
+!--------------------------------------------------------------------------------------------------
+!< @brief Read restart information from file.
+!--------------------------------------------------------------------------------------------------
 module subroutine mechanical_restartRead(groupHandle,ph)
 
   integer(HID_T), intent(in) :: groupHandle
@@ -1243,19 +1265,19 @@ module subroutine mechanical_restartRead(groupHandle,ph)
 
 
   call HDF5_read(plasticState(ph)%state0,groupHandle,'omega_plastic')
-  call HDF5_read(phase_mechanical_Fi0(ph)%data,groupHandle,'F_i')
-  call HDF5_read(phase_mechanical_Li0(ph)%data,groupHandle,'L_i')
-  call HDF5_read(phase_mechanical_Lp0(ph)%data,groupHandle,'L_p')
-  call HDF5_read(phase_mechanical_Fp0(ph)%data,groupHandle,'F_p')
   call HDF5_read(phase_mechanical_S0(ph)%data,groupHandle,'S')
   call HDF5_read(phase_mechanical_F0(ph)%data,groupHandle,'F')
+  call HDF5_read(phase_mechanical_Fp0(ph)%data,groupHandle,'F_p')
+  call HDF5_read(phase_mechanical_Fi0(ph)%data,groupHandle,'F_i')
+  call HDF5_read(phase_mechanical_Lp0(ph)%data,groupHandle,'L_p')
+  call HDF5_read(phase_mechanical_Li0(ph)%data,groupHandle,'L_i')
 
 end subroutine mechanical_restartRead
 
 
-!----------------------------------------------------------------------------------------------
-!< @brief Get first Piola-Kichhoff stress (for use by non-mech physics)
-!----------------------------------------------------------------------------------------------
+!--------------------------------------------------------------------------------------------------
+!< @brief Get first Piola-Kichhoff stress (for use by non-mech physics).
+!--------------------------------------------------------------------------------------------------
 module function mechanical_S(ph,en) result(S)
 
   integer, intent(in) :: ph,en
@@ -1267,9 +1289,9 @@ module function mechanical_S(ph,en) result(S)
 end function mechanical_S
 
 
-!----------------------------------------------------------------------------------------------
-!< @brief Get plastic velocity gradient (for use by non-mech physics)
-!----------------------------------------------------------------------------------------------
+!--------------------------------------------------------------------------------------------------
+!< @brief Get plastic velocity gradient (for use by non-mech physics).
+!--------------------------------------------------------------------------------------------------
 module function mechanical_L_p(ph,en) result(L_p)
 
   integer, intent(in) :: ph,en
@@ -1281,9 +1303,9 @@ module function mechanical_L_p(ph,en) result(L_p)
 end function mechanical_L_p
 
 
-!----------------------------------------------------------------------------------------------
-!< @brief Get elastic deformation gradient (for use by non-mech physics)
-!----------------------------------------------------------------------------------------------
+!--------------------------------------------------------------------------------------------------
+!< @brief Get elastic deformation gradient (for use by non-mech physics).
+!--------------------------------------------------------------------------------------------------
 module function mechanical_F_e(ph,en) result(F_e)
 
   integer, intent(in) :: ph,en
@@ -1295,9 +1317,9 @@ module function mechanical_F_e(ph,en) result(F_e)
 end function mechanical_F_e
 
 
-!----------------------------------------------------------------------------------------------
-!< @brief Get second Piola-Kichhoff stress (for use by homogenization)
-!----------------------------------------------------------------------------------------------
+!--------------------------------------------------------------------------------------------------
+!< @brief Get second Piola-Kichhoff stress (for use by homogenization).
+!--------------------------------------------------------------------------------------------------
 module function phase_P(co,ce) result(P)
 
   integer, intent(in) :: co, ce
@@ -1309,9 +1331,9 @@ module function phase_P(co,ce) result(P)
 end function phase_P
 
 
-!----------------------------------------------------------------------------------------------
-!< @brief Get deformation gradient (for use by homogenization)
-!----------------------------------------------------------------------------------------------
+!--------------------------------------------------------------------------------------------------
+!< @brief Get deformation gradient (for use by homogenization).
+!--------------------------------------------------------------------------------------------------
 module function phase_F(co,ce) result(F)
 
   integer, intent(in) :: co, ce
@@ -1323,9 +1345,9 @@ module function phase_F(co,ce) result(F)
 end function phase_F
 
 
-!----------------------------------------------------------------------------------------------
-!< @brief Set deformation gradient (for use by homogenization)
-!----------------------------------------------------------------------------------------------
+!--------------------------------------------------------------------------------------------------
+!< @brief Set deformation gradient (for use by homogenization).
+!--------------------------------------------------------------------------------------------------
 module subroutine phase_set_F(F,co,ce)
 
   real(pReal), dimension(3,3), intent(in) :: F

@@ -120,9 +120,10 @@ class Orientation(Rotation,Crystal):
 
 
     def __repr__(self) -> str:
-        """Represent."""
-        return '\n'.join([Crystal.__repr__(self),
-                          Rotation.__repr__(self)])
+        """Give short human-readable summary."""
+        return util.srepr([Crystal.__repr__(self),
+                           Rotation.__repr__(self)])
+
 
     def __copy__(self: MyType,
                  rotation: Union[FloatSequence, Rotation] = None) -> MyType:
@@ -447,9 +448,12 @@ class Orientation(Rotation,Crystal):
             elif self.family == 'orthorhombic':
                 return (np.prod(1. >= rho_abs,axis=-1)).astype(bool)
             elif self.family == 'monoclinic':
-                return (1. >= rho_abs[...,1]).astype(bool)
+                return np.logical_or(   1. >= rho_abs[...,1],
+                                     np.isnan(rho_abs[...,1]))
+            elif self.family == 'triclinic':
+                return np.ones(rho_abs.shape[:-1]).astype(bool)
             else:
-                return np.all(np.isfinite(rho_abs),axis=-1)
+                raise TypeError(f'unknown symmetry "{self.family}"')
 
 
     @property
@@ -785,7 +789,8 @@ class Orientation(Rotation,Crystal):
     def to_pole(self, *,
                 uvw: FloatSequence = None,
                 hkl: FloatSequence = None,
-                with_symmetry: bool = False) -> np.ndarray:
+                with_symmetry: bool = False,
+                normalize: bool = True) -> np.ndarray:
         """
         Calculate lab frame vector along lattice direction [uvw] or plane normal (hkl).
 
@@ -794,18 +799,26 @@ class Orientation(Rotation,Crystal):
         uvw|hkl : numpy.ndarray, shape (...,3)
             Miller indices of crystallographic direction or plane normal.
             Shape of vector blends with shape of own rotation array.
-            For example, a rotation array, shape (3,2) and a vector array of shape (2,4) result in (3,2,4) outputs.
+            For example, a rotation array of shape (3,2) and a vector
+            array of shape (2,4) result in (3,2,4) outputs.
         with_symmetry : bool, optional
             Calculate all N symmetrically equivalent vectors.
+            Defaults to False.
+        normalize : bool, optional
+            Normalize output vector.
+            Defaults to True.
 
         Returns
         -------
         vector : numpy.ndarray, shape (...,3) or (...,N,3)
-            Lab frame vector (or vectors if with_symmetry) along [uvw] direction or (hkl) plane normal.
+            Lab frame vector (or vectors if with_symmetry) along
+            [uvw] direction or (hkl) plane normal.
 
         """
         v = self.to_frame(uvw=uvw,hkl=hkl)
         blend = util.shapeblender(self.shape,v.shape[:-1])
+        if normalize:
+            v /= np.linalg.norm(v,axis=-1,keepdims=len(v.shape)>1)
         if with_symmetry:
             sym_ops = self.symmetry_operations
             shape = v.shape[:-1]+sym_ops.shape
@@ -823,7 +836,7 @@ class Orientation(Rotation,Crystal):
 
         Parameters
         ----------
-        N_slip|N_twin : '*' or iterable of int
+        N_slip|N_twin : '*' or sequence of int
             Number of deformation systems per family of the deformation system.
             Use '*' to select all.
 
@@ -869,10 +882,36 @@ class Orientation(Rotation,Crystal):
     def related(self: MyType,
                 model: str) -> MyType:
         """
-        Orientations derived from the given relationship.
+        All orientations related to self by given relationship model.
 
-        One dimension (length according to number of related orientations)
-        is added to the left of the Rotation array.
+        Parameters
+        ----------
+        model : str
+            Orientation relationship model selected from self.orientation_relationships.
+
+        Returns
+        -------
+        Orientations related to self following the selected
+        model for the orientation relationship.
+
+        Examples
+        --------
+        Face-centered cubic orientations following from a
+        body-centered cubic crystal in "Cube" orientation according
+        to the Bain orientation relationship (cI -> cF).
+
+        >>> import numpy as np
+        >>> import damask
+        >>> np.set_printoptions(3,suppress=True,floatmode='fixed')
+        >>> damask.Orientation(lattice='cI').related('Bain')
+        Crystal family: cubic
+        Bravais lattice: cF
+        a=1 m, b=1 m, c=1 m
+        α=90°, β=90°, γ=90°
+        Quaternions of shape (3,)
+        [[0.924 0.383 0.000 0.000]
+         [0.924 0.000 0.383 0.000]
+         [0.924 0.000 0.000 0.383]]
 
         """
         lattice,o = self.relation_operations(model)

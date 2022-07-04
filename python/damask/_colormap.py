@@ -2,7 +2,6 @@ import os
 import json
 import functools
 import colorsys
-from pathlib import Path
 from typing import Union, TextIO
 
 import numpy as np
@@ -325,12 +324,7 @@ class Colormap(mpl.colors.ListedColormap):
             File handle with write access.
 
         """
-        if fname is None:
-            return open(self.name.replace(' ','_')+suffix, 'w', newline='\n')
-        elif isinstance(fname, (str, Path)):
-            return open(fname, 'w', newline='\n')
-        else:
-            return fname
+        return util.open_text(self.name.replace(' ','_')+suffix if fname is None else fname, 'w')
 
 
     def save_paraview(self,
@@ -373,7 +367,7 @@ class Colormap(mpl.colors.ListedColormap):
 
         """
         labels = {'RGBA':4} if self.colors.shape[1] == 4 else {'RGB': 3}
-        t = Table(self.colors,labels,f'Creator: {util.execution_stamp("Colormap")}')
+        t = Table(labels,self.colors,f'Creator: {util.execution_stamp("Colormap")}')
         t.save(self._get_file_handle(fname,'.txt'))
 
 
@@ -391,7 +385,7 @@ class Colormap(mpl.colors.ListedColormap):
         GOM_str = '1 1 {name} 9 {name} '.format(name=self.name.replace(" ","_")) \
                 +  '0 1 0 3 0 0 -1 9 \\ 0 0 0 255 255 255 0 0 255 ' \
                 + f'30 NO_UNIT 1 1 64 64 64 255 1 0 0 0 0 0 0 3 0 {self.N}' \
-                + ' '.join([f' 0 {c[0]} {c[1]} {c[2]} 255 1' for c in reversed((self.colors*255).astype(int))]) \
+                + ' '.join([f' 0 {c[0]} {c[1]} {c[2]} 255 1' for c in reversed((self.colors*255).astype(np.int64))]) \
                 + '\n'
 
         self._get_file_handle(fname,'.legend').write(GOM_str)

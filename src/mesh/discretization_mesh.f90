@@ -15,7 +15,7 @@ module discretization_mesh
   use MPI_f08
 #endif
 
-  use DAMASK_interface
+  use CLI
   use parallelization
   use IO
   use config
@@ -100,7 +100,11 @@ subroutine discretization_mesh_init(restart)
   debug_element = config_debug%get_asInt('element',defaultVal=1)
   debug_ip      = config_debug%get_asInt('integrationpoint',defaultVal=1)
 
-  call DMPlexCreateFromFile(PETSC_COMM_WORLD,interface_geomFile,PETSC_TRUE,globalMesh,err_PETSc)
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR>16)
+  call DMPlexCreateFromFile(PETSC_COMM_WORLD,CLI_geomFile,'n/a',PETSC_TRUE,globalMesh,err_PETSc)
+#else
+  call DMPlexCreateFromFile(PETSC_COMM_WORLD,CLI_geomFile,PETSC_TRUE,globalMesh,err_PETSc)
+#endif
   CHKERRQ(err_PETSc)
   call DMGetDimension(globalMesh,dimPlex,err_PETSc)
   CHKERRQ(err_PETSc)
@@ -243,7 +247,7 @@ subroutine mesh_FEM_build_ipCoordinates(dimPlex,qPoints)
         mesh_ipCoordinates(dirI,qPt,cell+1) = pV0(dirI)
         do dirJ = 1, dimPlex
           mesh_ipCoordinates(dirI,qPt,cell+1) = mesh_ipCoordinates(dirI,qPt,cell+1) + &
-                                                pCellJ((dirI-1)*dimPlex+dirJ)*(qPoints(qOffset+dirJ) + 1.0)
+                                                pCellJ((dirI-1)*dimPlex+dirJ)*(qPoints(qOffset+dirJ) + 1.0_pReal)
         enddo
       enddo
       qOffset = qOffset + dimPlex

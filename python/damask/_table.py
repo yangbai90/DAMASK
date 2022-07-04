@@ -1,7 +1,6 @@
 import re
 import copy
-from pathlib import Path
-from typing import Union, Tuple, List
+from typing import Union, Tuple, List, Iterable
 
 import pandas as pd
 import numpy as np
@@ -13,31 +12,32 @@ class Table:
     """Manipulate multi-dimensional spreadsheet-like data."""
 
     def __init__(self,
-                 data: np.ndarray,
                  shapes: dict,
-                 comments: Union[str, list] = None):
+                 data: np.ndarray,
+                 comments: Union[str, Iterable[str]] = None):
         """
         New spreadsheet.
 
         Parameters
         ----------
-        data : numpy.ndarray or pandas.DataFrame
-            Data. Column labels from a pandas.DataFrame will be replaced.
         shapes : dict with str:tuple pairs
-            Shapes of the columns. Example 'F':(3,3) for a deformation gradient.
+            Shapes of the data columns.
+            For instance, 'F':(3,3) for a deformation gradient, or 'r':(1,) for a scalar.
+        data : numpy.ndarray or pandas.DataFrame
+            Data. Existing column labels of a pandas.DataFrame will be replaced.
         comments : str or iterable of str, optional
             Additional, human-readable information.
 
         """
         comments_ = [comments] if isinstance(comments,str) else comments
-        self.comments = [] if comments_ is None else [c for c in comments_]
-        self.data = pd.DataFrame(data=data)
+        self.comments = [] if comments_ is None else [str(c) for c in comments_]
         self.shapes = { k:(v,) if isinstance(v,(np.int64,np.int32,int)) else v for k,v in shapes.items() }
+        self.data = pd.DataFrame(data=data)
         self._relabel('uniform')
 
 
     def __repr__(self) -> str:
-        """Brief overview."""
+        """Give short human-readable summary."""
         self._relabel('shapes')
         data_repr = self.data.__repr__()
         self._relabel('uniform')
@@ -70,8 +70,8 @@ class Table:
         --------
         >>> import damask
         >>> import numpy as np
-        >>> tbl = damask.Table(data=np.arange(12).reshape((4,3)),
-        ...                    shapes=dict(colA=(1,),colB=(1,),colC=(1,)))
+        >>> tbl = damask.Table(shapes=dict(colA=(1,),colB=(1,),colC=(1,)),
+        ...                    data=np.arange(12).reshape((4,3)))
         >>> tbl['colA','colB']
            colA  colB
         0     0     1
@@ -134,7 +134,7 @@ class Table:
         labels = []
         for label in what:
             shape = self.shapes[label]
-            size = np.prod(shape,dtype=int)
+            size = np.prod(shape,dtype=np.int64)
             if   how == 'uniform':
                 labels += [label] * size
             elif how == 'shapes':
@@ -160,7 +160,7 @@ class Table:
             'linear'  ==> 1_v 2_v 3_v
 
         """
-        self.data.columns = self._label(self.shapes,how) #type: ignore
+        self.data.columns = self._label(self.shapes,how)                                            # type: ignore
 
 
     def _add_comment(self,
@@ -168,7 +168,7 @@ class Table:
                      shape: Tuple[int, ...],
                      info: str = None):
         if info is not None:
-            specific = f'{label}{" "+str(shape) if np.prod(shape,dtype=int) > 1 else ""}: {info}'
+            specific = f'{label}{" "+str(shape) if np.prod(shape,dtype=np.int64) > 1 else ""}: {info}'
             general  = util.execution_stamp('Table')
             self.comments.append(f'{specific} / {general}')
 
@@ -259,7 +259,7 @@ class Table:
             Table data from file.
 
         """
-        f = open(fname) if isinstance(fname, (str, Path)) else fname
+        f = util.open_text(fname)
         f.seek(0)
 
         comments = []
@@ -282,7 +282,7 @@ class Table:
 
         data = pd.read_csv(f,names=list(range(len(labels))),sep=r'\s+')
 
-        return Table(data,shapes,comments)
+        return Table(shapes,data,comments)
 
 
     @staticmethod
@@ -311,7 +311,7 @@ class Table:
             Table data from file.
 
         """
-        f = open(fname) if isinstance(fname, (str, Path)) else fname
+        f = util.open_text(fname)
         f.seek(0)
 
         content = f.readlines()
@@ -329,11 +329,11 @@ class Table:
         if (remainder := data.shape[1]-sum(shapes.values())) > 0:
             shapes['unknown'] = remainder
 
-        return Table(data,shapes,comments)
+        return Table(shapes,data,comments)
 
 
     @property
-    def labels(self) -> List[Tuple[int, ...]]:
+    def labels(self) -> List[str]:
         return list(self.shapes)
 
 
@@ -363,16 +363,16 @@ class Table:
             data: np.ndarray,
             info: str = None) -> 'Table':
         """
-        Set column data.
+        Add new or replace existing column data.
 
         Parameters
         ----------
         label : str
             Column label.
         data : numpy.ndarray
-            Replacement data.
+            Column data. First dimension needs to match number of rows.
         info : str, optional
-            Human-readable information about the modified data.
+            Human-readable information about the data.
 
         Returns
         -------
@@ -382,49 +382,32 @@ class Table:
         """
         dup = self.copy()
         dup._add_comment(label, data.shape[1:], info)
+
         if m := re.match(r'(.*)\[((\d+,)*(\d+))\]',label):
             key = m.group(1)
-            idx = np.ravel_multi_index(tuple(map(int,m.group(2).split(","))),
-                                       self.shapes[key])
-            iloc = dup.data.columns.get_loc(key).tolist().index(True) + idx
-            dup.data.iloc[:,iloc] = data
         else:
-            dup.data[label]       = data.reshape(dup.data[label].shape)
-        return dup
+            key = label
 
+        if key in dup.shapes:
 
-    def add(self,
-            label: str,
-            data: np.ndarray,
-            info: str = None) -> 'Table':
-        """
-        Add column data.
+            if m:
+                idx = np.ravel_multi_index(tuple(map(int,m.group(2).split(","))),
+                                           self.shapes[key])
+                iloc = dup.data.columns.get_loc(key).tolist().index(True) + idx
+                dup.data.iloc[:,iloc] = data
+            else:
+                dup.data[label]       = data.reshape(dup.data[label].shape)
 
-        Parameters
-        ----------
-        label : str
-            Column label.
-        data : numpy.ndarray
-            New data.
-        info : str, optional
-            Human-readable information about the new data.
+        else:
 
-        Returns
-        -------
-        updated : damask.Table
-            Updated table.
+            dup.shapes[label] = data.shape[1:] if len(data.shape) > 1 else (1,)
+            size = np.prod(data.shape[1:],dtype=np.int64)
+            new = pd.DataFrame(data=data.reshape(-1,size),
+                               columns=[label]*size,
+                              )
+            new.index = dup.data.index
+            dup.data = pd.concat([dup.data,new],axis=1)
 
-        """
-        dup = self.copy()
-        dup._add_comment(label,data.shape[1:],info)
-
-        dup.shapes[label] = data.shape[1:] if len(data.shape) > 1 else (1,)
-        size = np.prod(data.shape[1:],dtype=int)
-        new = pd.DataFrame(data=data.reshape(-1,size),
-                           columns=[label]*size,
-                          )
-        new.index = dup.data.index
-        dup.data = pd.concat([dup.data,new],axis=1)
         return dup
 
 
@@ -451,8 +434,8 @@ class Table:
 
 
     def rename(self,
-               old: Union[str, List[str]],
-               new: Union[str, List[str]],
+               old: Union[str, Iterable[str]],
+               new: Union[str, Iterable[str]],
                info: str = None) -> 'Table':
         """
         Rename column data.
@@ -535,7 +518,7 @@ class Table:
             raise KeyError('mismatch of shapes or labels or their order')
 
         dup = self.copy()
-        dup.data = dup.data.append(other.data,ignore_index=True)
+        dup.data = pd.concat([dup.data,other.data],ignore_index=True)
         return dup
 
 
@@ -568,7 +551,8 @@ class Table:
 
 
     def save(self,
-             fname: FileHandle):
+             fname: FileHandle,
+             with_labels: bool = True):
         """
         Save as plain text file.
 
@@ -576,20 +560,23 @@ class Table:
         ----------
         fname : file, str, or pathlib.Path
             Filename or file for writing.
+        with_labels : bool, optional
+            Write column labels. Defaults to True.
 
         """
         labels = []
-        for l in list(dict.fromkeys(self.data.columns)):
-            if self.shapes[l] == (1,):
-                labels.append(f'{l}')
-            elif len(self.shapes[l]) == 1:
-                labels += [f'{i+1}_{l}' \
-                          for i in range(self.shapes[l][0])]
-            else:
-                labels += [f'{util.srepr(self.shapes[l],"x")}:{i+1}_{l}' \
-                          for i in range(np.prod(self.shapes[l]))]
+        if with_labels:
+            for l in list(dict.fromkeys(self.data.columns)):
+                if self.shapes[l] == (1,):
+                    labels.append(f'{l}')
+                elif len(self.shapes[l]) == 1:
+                    labels += [f'{i+1}_{l}' \
+                              for i in range(self.shapes[l][0])]
+                else:
+                    labels += [f'{util.srepr(self.shapes[l],"x")}:{i+1}_{l}' \
+                              for i in range(np.prod(self.shapes[l]))]
 
-        f = open(fname,'w',newline='\n') if isinstance(fname, (str, Path)) else fname
+        f = util.open_text(fname,'w')
 
-        f.write('\n'.join([f'# {c}' for c in self.comments] + [' '.join(labels)])+'\n')
-        self.data.to_csv(f,sep=' ',na_rep='nan',index=False,header=False)
+        f.write('\n'.join([f'# {c}' for c in self.comments] + [' '.join(labels)])+('\n' if labels else ''))
+        self.data.to_csv(f,sep=' ',na_rep='nan',index=False,header=False,line_terminator='\n')
