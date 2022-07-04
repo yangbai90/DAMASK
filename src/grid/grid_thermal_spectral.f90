@@ -16,7 +16,7 @@ module grid_thermal_spectral
   use prec
   use parallelization
   use IO
-  use DAMASK_interface
+  use CLI
   use HDF5_utilities
   use HDF5
   use spectral_utilities
@@ -65,9 +65,7 @@ contains
 !--------------------------------------------------------------------------------------------------
 !> @brief allocates all neccessary fields and fills them with data
 !--------------------------------------------------------------------------------------------------
-subroutine grid_thermal_spectral_init(T_0)
-
-  real(pReal), intent(in) :: T_0
+subroutine grid_thermal_spectral_init()
 
   PetscInt, dimension(0:worldsize-1) :: localK
   integer :: i, j, k, ce
@@ -105,9 +103,9 @@ subroutine grid_thermal_spectral_init(T_0)
 
 !--------------------------------------------------------------------------------------------------
 ! init fields
-  allocate(T_current(cells(1),cells(2),cells3), source=T_0)
-  allocate(T_lastInc(cells(1),cells(2),cells3), source=T_0)
-  allocate(T_stagInc(cells(1),cells(2),cells3), source=T_0)
+  T_current = discretization_grid_getInitialCondition('T')
+  T_lastInc = T_current
+  T_stagInc = T_current
 
 !--------------------------------------------------------------------------------------------------
 ! initialize solver specific parts of PETSc
@@ -142,8 +140,8 @@ subroutine grid_thermal_spectral_init(T_0)
   CHKERRQ(err_PETSc)
 
 
-  restartRead: if (interface_restartInc > 0) then
-    print'(/,1x,a,i0,a)', 'reading restart data of increment ', interface_restartInc, ' from file'
+  restartRead: if (CLI_restartInc > 0) then
+    print'(/,1x,a,i0,a)', 'reading restart data of increment ', CLI_restartInc, ' from file'
 
     fileHandle  = HDF5_openFile(getSolverJobName()//'_restart.hdf5','r')
     groupHandle = HDF5_openGroup(fileHandle,'solver')

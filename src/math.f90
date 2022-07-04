@@ -82,7 +82,7 @@ contains
 !--------------------------------------------------------------------------------------------------
 !> @brief initialization of random seed generator and internal checks
 !--------------------------------------------------------------------------------------------------
-subroutine math_init
+subroutine math_init()
 
   real(pReal), dimension(4) :: randTest
   integer :: randSize
@@ -127,31 +127,33 @@ pure recursive subroutine math_sort(a, istart, iend, sortDim)
 
   integer, dimension(:,:), intent(inout) :: a
   integer, intent(in),optional :: istart,iend, sortDim
+
   integer :: ipivot,s,e,d
+
 
   if (present(istart)) then
     s = istart
   else
     s = lbound(a,2)
-  endif
+  end if
 
   if (present(iend)) then
     e = iend
   else
     e = ubound(a,2)
-  endif
+  end if
 
   if (present(sortDim)) then
     d = sortDim
   else
     d = 1
-  endif
+  end if
 
   if (s < e) then
     call qsort_partition(a,ipivot, s,e, d)
     call math_sort(a, s, ipivot-1, d)
     call math_sort(a, ipivot+1, e, d)
-  endif
+  end if
 
 
   contains
@@ -164,18 +166,20 @@ pure recursive subroutine math_sort(a, istart, iend, sortDim)
     integer, dimension(:,:), intent(inout) :: a
     integer,                 intent(out)   :: p                                                     ! Pivot element
     integer,                 intent(in)    :: istart,iend,sort
-    integer, dimension(size(a,1))          :: tmp
+
+    integer, dimension(size(a,1)) :: tmp
     integer :: i,j
+
 
     do
       ! find the first element on the right side less than or equal to the pivot point
       do j = iend, istart, -1
         if (a(sort,j) <= a(sort,istart)) exit
-      enddo
+      end do
       ! find the first element on the left side greater than the pivot point
       do i = istart, iend
         if (a(sort,i) > a(sort,istart)) exit
-      enddo
+      end do
       cross: if (i >= j) then ! exchange left value with pivot and return with the partition index
         tmp         = a(:,istart)
         a(:,istart) = a(:,j)
@@ -186,8 +190,8 @@ pure recursive subroutine math_sort(a, istart, iend, sortDim)
         tmp    = a(:,i)
         a(:,i) = a(:,j)
         a(:,j) = tmp
-      endif cross
-    enddo
+      end if cross
+    end do
 
   end subroutine qsort_partition
 
@@ -204,13 +208,15 @@ pure function math_expand(what,how)
   real(pReal),   dimension(:), intent(in) :: what
   integer,       dimension(:), intent(in) :: how
   real(pReal), dimension(sum(how)) ::  math_expand
+
   integer :: i
+
 
   if (sum(how) == 0) return
 
   do i = 1, size(how)
     math_expand(sum(how(1:i-1))+1:sum(how(1:i))) = what(mod(i-1,size(what))+1)
-  enddo
+  end do
 
 end function math_expand
 
@@ -221,8 +227,10 @@ end function math_expand
 pure function math_range(N)
 
   integer, intent(in) :: N                                                                          !< length of range
-  integer :: i
   integer, dimension(N) :: math_range
+
+  integer :: i
+
 
   math_range = [(i,i=1,N)]
 
@@ -235,13 +243,15 @@ end function math_range
 pure function math_eye(d)
 
   integer, intent(in) :: d                                                                          !< tensor dimension
-  integer :: i
   real(pReal), dimension(d,d) :: math_eye
+
+  integer :: i
+
 
   math_eye = 0.0_pReal
   do i=1,d
     math_eye(i,i) = 1.0_pReal
-  enddo
+  end do
 
 end function math_eye
 
@@ -260,7 +270,7 @@ pure function math_identity4th()
 #ifndef __INTEL_COMPILER
   do concurrent(i=1:3, j=1:3, k=1:3, l=1:3)
     math_identity4th(i,j,k,l) = 0.5_pReal*(math_I3(i,k)*math_I3(j,l)+math_I3(i,l)*math_I3(j,k))
-  enddo
+  end do
 #else
   forall(i=1:3, j=1:3, k=1:3, l=1:3) &
     math_identity4th(i,j,k,l) = 0.5_pReal*(math_I3(i,k)*math_I3(j,l)+math_I3(i,l)*math_I3(j,k))
@@ -288,7 +298,7 @@ real(pReal) pure function math_LeviCivita(i,j,k)
     math_LeviCivita = -1.0_pReal
   else
     math_LeviCivita =  0.0_pReal
-  endif
+  end if
 
 end function math_LeviCivita
 
@@ -302,6 +312,7 @@ real(pReal) pure function math_delta(i,j)
 
   integer, intent (in) :: i,j
 
+
   math_delta = merge(0.0_pReal, 1.0_pReal, i /= j)
 
 end function math_delta
@@ -314,6 +325,7 @@ pure function math_cross(A,B)
 
   real(pReal), dimension(3), intent(in) ::  A,B
   real(pReal), dimension(3) :: math_cross
+
 
   math_cross = [ A(2)*B(3) -A(3)*B(2), &
                  A(3)*B(1) -A(1)*B(3), &
@@ -329,13 +341,14 @@ pure function math_outer(A,B)
 
   real(pReal), dimension(:), intent(in) ::  A,B
   real(pReal), dimension(size(A,1),size(B,1)) ::  math_outer
+
   integer :: i,j
 
 
 #ifndef __INTEL_COMPILER
   do concurrent(i=1:size(A,1), j=1:size(B,1))
     math_outer(i,j) = A(i)*B(j)
-  enddo
+  end do
 #else
   forall(i=1:size(A,1), j=1:size(B,1)) math_outer(i,j) = A(i)*B(j)
 #endif
@@ -351,6 +364,7 @@ real(pReal) pure function math_inner(A,B)
   real(pReal), dimension(:),         intent(in) :: A
   real(pReal), dimension(size(A,1)), intent(in) :: B
 
+
   math_inner = sum(A*B)
 
 end function math_inner
@@ -362,6 +376,7 @@ end function math_inner
 real(pReal) pure function math_tensordot(A,B)
 
   real(pReal), dimension(3,3), intent(in) :: A,B
+
 
   math_tensordot = sum(A*B)
 
@@ -376,13 +391,14 @@ pure function math_mul3333xx33(A,B)
   real(pReal), dimension(3,3,3,3), intent(in) :: A
   real(pReal), dimension(3,3),     intent(in) :: B
   real(pReal), dimension(3,3) :: math_mul3333xx33
+
   integer :: i,j
 
 
 #ifndef __INTEL_COMPILER
   do concurrent(i=1:3, j=1:3)
     math_mul3333xx33(i,j) = sum(A(i,j,1:3,1:3)*B(1:3,1:3))
-  enddo
+  end do
 #else
   forall (i=1:3, j=1:3) math_mul3333xx33(i,j) = sum(A(i,j,1:3,1:3)*B(1:3,1:3))
 #endif
@@ -395,16 +411,17 @@ end function math_mul3333xx33
 !--------------------------------------------------------------------------------------------------
 pure function math_mul3333xx3333(A,B)
 
-  integer :: i,j,k,l
   real(pReal), dimension(3,3,3,3), intent(in) :: A
   real(pReal), dimension(3,3,3,3), intent(in) :: B
   real(pReal), dimension(3,3,3,3) :: math_mul3333xx3333
+
+  integer :: i,j,k,l
 
 
 #ifndef __INTEL_COMPILER
   do concurrent(i=1:3, j=1:3, k=1:3, l=1:3)
     math_mul3333xx3333(i,j,k,l) = sum(A(i,j,1:3,1:3)*B(1:3,1:3,k,l))
-  enddo
+  end do
 #else
   forall(i=1:3, j=1:3, k=1:3, l=1:3) math_mul3333xx3333(i,j,k,l) = sum(A(i,j,1:3,1:3)*B(1:3,1:3,k,l))
 #endif
@@ -424,11 +441,12 @@ pure function math_exp33(A,n)
   real(pReal) :: invFac
   integer     :: n_,i
 
+
   if (present(n)) then
     n_ = n
   else
     n_ = 5
-  endif
+  end if
 
   invFac     = 1.0_pReal                                                                            ! 0!
   B          = math_I3
@@ -438,7 +456,7 @@ pure function math_exp33(A,n)
     invFac = invFac/real(i,pReal)                                                                   ! invfac = 1/(i!)
     B = matmul(B,A)
     math_exp33 = math_exp33 + invFac*B                                                              ! exp = SUM (A^i)/(i!)
-  enddo
+  end do
 
 end function math_exp33
 
@@ -455,6 +473,7 @@ pure function math_inv33(A)
 
   real(pReal) :: DetA
   logical     :: error
+
 
   call math_invert33(math_inv33,DetA,error,A)
   if (error) math_inv33 = 0.0_pReal
@@ -473,6 +492,7 @@ pure subroutine math_invert33(InvA, DetA, error, A)
   real(pReal),                 intent(out) :: DetA
   logical,                     intent(out) :: error
   real(pReal), dimension(3,3), intent(in)  :: A
+
 
   InvA(1,1) =  A(2,2) * A(3,3) - A(2,3) * A(3,2)
   InvA(2,1) = -A(2,1) * A(3,3) + A(2,3) * A(3,1)
@@ -494,7 +514,7 @@ pure subroutine math_invert33(InvA, DetA, error, A)
 
     InvA = InvA/DetA
     error = .false.
-  endif
+  end if
 
 end subroutine math_invert33
 
@@ -504,7 +524,7 @@ end subroutine math_invert33
 !--------------------------------------------------------------------------------------------------
 pure function math_invSym3333(A)
 
-  real(pReal),dimension(3,3,3,3)            :: math_invSym3333
+  real(pReal),dimension(3,3,3,3) :: math_invSym3333
 
   real(pReal),dimension(3,3,3,3),intent(in) :: A
 
@@ -513,6 +533,7 @@ pure function math_invSym3333(A)
   real(pReal), dimension(6*6) :: work
   integer                     :: ierr_i, ierr_f
 
+
   temp66 = math_sym3333to66(A)
   call dgetrf(6,6,temp66,6,ipiv6,ierr_i)
   call dgetri(6,temp66,6,ipiv6,work,size(work,1),ierr_f)
@@ -520,7 +541,7 @@ pure function math_invSym3333(A)
     error stop 'matrix inversion error'
   else
     math_invSym3333 = math_66toSym3333(temp66)
-  endif
+  end if
 
 end function math_invSym3333
 
@@ -537,6 +558,7 @@ pure subroutine math_invert(InvA, error, A)
   integer,     dimension(size(A,1))    :: ipiv
   real(pReal), dimension(size(A,1)**2) :: work
   integer                              :: ierr
+
 
   invA = A
   call dgetrf(size(A,1),size(A,1),invA,size(A,1),ipiv,ierr)
@@ -555,6 +577,7 @@ pure function math_symmetric33(m)
   real(pReal), dimension(3,3) :: math_symmetric33
   real(pReal), dimension(3,3), intent(in) :: m
 
+
   math_symmetric33 = 0.5_pReal * (m + transpose(m))
 
 end function math_symmetric33
@@ -567,6 +590,7 @@ pure function math_skew33(m)
 
   real(pReal), dimension(3,3) :: math_skew33
   real(pReal), dimension(3,3), intent(in) :: m
+
 
   math_skew33 = m - math_symmetric33(m)
 
@@ -581,6 +605,7 @@ pure function math_spherical33(m)
   real(pReal), dimension(3,3) :: math_spherical33
   real(pReal), dimension(3,3), intent(in) :: m
 
+
   math_spherical33 = math_I3 * math_trace33(m)/3.0_pReal
 
 end function math_spherical33
@@ -594,6 +619,7 @@ pure function math_deviatoric33(m)
   real(pReal), dimension(3,3) :: math_deviatoric33
   real(pReal), dimension(3,3), intent(in) :: m
 
+
   math_deviatoric33 = m - math_spherical33(m)
 
 end function math_deviatoric33
@@ -606,6 +632,7 @@ real(pReal) pure function math_trace33(m)
 
   real(pReal), dimension(3,3), intent(in) :: m
 
+
   math_trace33 = m(1,1) + m(2,2) + m(3,3)
 
 end function math_trace33
@@ -617,6 +644,7 @@ end function math_trace33
 real(pReal) pure function math_det33(m)
 
   real(pReal), dimension(3,3), intent(in) :: m
+
 
   math_det33 = m(1,1)* (m(2,2)*m(3,3)-m(2,3)*m(3,2)) &
              - m(1,2)* (m(2,1)*m(3,3)-m(2,3)*m(3,1)) &
@@ -631,6 +659,7 @@ end function math_det33
 real(pReal) pure function math_detSym33(m)
 
   real(pReal), dimension(3,3), intent(in) :: m
+
 
   math_detSym33 = -(m(1,1)*m(2,3)**2 + m(2,2)*m(1,3)**2 + m(3,3)*m(1,2)**2) &
                   + m(1,1)*m(2,2)*m(3,3) + 2.0_pReal * m(1,2)*m(1,3)*m(2,3)
@@ -667,7 +696,7 @@ pure function math_9to33(v9)
 
   do i = 1, 9
     math_9to33(MAPPLAIN(1,i),MAPPLAIN(2,i)) = v9(i)
-  enddo
+  end do
 
 end function math_9to33
 
@@ -692,7 +721,7 @@ pure function math_sym33to6(m33,weighted)
     w = merge(NRMMANDEL,1.0_pReal,weighted)
   else
     w = NRMMANDEL
-  endif
+  end if
 
   math_sym33to6 = [(w(i)*m33(MAPNYE(1,i),MAPNYE(2,i)),i=1,6)]
 
@@ -719,12 +748,12 @@ pure function math_6toSym33(v6,weighted)
     w = merge(INVNRMMANDEL,1.0_pReal,weighted)
   else
     w = INVNRMMANDEL
-  endif
+  end if
 
   do i=1,6
     math_6toSym33(MAPNYE(1,i),MAPNYE(2,i)) = w(i)*v6(i)
     math_6toSym33(MAPNYE(2,i),MAPNYE(1,i)) = w(i)*v6(i)
-  enddo
+  end do
 
 end function math_6toSym33
 
@@ -743,7 +772,7 @@ pure function math_3333to99(m3333)
 #ifndef __INTEL_COMPILER
   do concurrent(i=1:9, j=1:9)
     math_3333to99(i,j) = m3333(MAPPLAIN(1,i),MAPPLAIN(2,i),MAPPLAIN(1,j),MAPPLAIN(2,j))
-  enddo
+  end do
 #else
   forall(i=1:9, j=1:9) math_3333to99(i,j) = m3333(MAPPLAIN(1,i),MAPPLAIN(2,i),MAPPLAIN(1,j),MAPPLAIN(2,j))
 #endif
@@ -761,10 +790,11 @@ pure function math_99to3333(m99)
 
   integer :: i,j
 
+
 #ifndef __INTEL_COMPILER
   do concurrent(i=1:9, j=1:9)
     math_99to3333(MAPPLAIN(1,i),MAPPLAIN(2,i),MAPPLAIN(1,j),MAPPLAIN(2,j)) = m99(i,j)
-  enddo
+  end do
 #else
   forall(i=1:9, j=1:9) math_99to3333(MAPPLAIN(1,i),MAPPLAIN(2,i),MAPPLAIN(1,j),MAPPLAIN(2,j)) = m99(i,j)
 #endif
@@ -797,7 +827,7 @@ pure function math_sym3333to66(m3333,weighted)
 #ifndef __INTEL_COMPILER
   do concurrent(i=1:6, j=1:6)
     math_sym3333to66(i,j) = w(i)*w(j)*m3333(MAPNYE(1,i),MAPNYE(2,i),MAPNYE(1,j),MAPNYE(2,j))
-  enddo
+  end do
 #else
   forall(i=1:6, j=1:6) math_sym3333to66(i,j) = w(i)*w(j)*m3333(MAPNYE(1,i),MAPNYE(2,i),MAPNYE(1,j),MAPNYE(2,j))
 #endif
@@ -1012,26 +1042,37 @@ pure subroutine math_eigh33(w,v,m)
   real(pReal) :: T, U, norm, threshold
   logical :: error
 
+
   w = math_eigvalsh33(m)
 
-  v(1:3,2) = [ m(1, 2) * m(2, 3) - m(1, 3) * m(2, 2), &
-               m(1, 3) * m(1, 2) - m(2, 3) * m(1, 1), &
-               m(1, 2)**2]
+  v(1:3,2) = [ m(1,2) * m(2,3) - m(1,3) * m(2,2), &
+               m(1,3) * m(1,2) - m(2,3) * m(1,1), &
+               m(1,2)**2]
 
   T = maxval(abs(w))
   U = max(T, T**2)
   threshold = sqrt(5.68e-14_pReal * U**2)
 
-  v(1:3,1) = [ v(1,2) + m(1, 3) * w(1), &
-               v(2,2) + m(2, 3) * w(1), &
+#ifndef __INTEL_LLVM_COMPILER
+  v(1:3,1) = [m(1,3)*w(1) + v(1,2), &
+              m(2,3)*w(1) + v(2,2), &
+#else
+  v(1:3,1) = [IEEE_FMA(m(1,3),w(1),v(1,2)), &
+              IEEE_FMA(m(2,3),w(1),v(2,2)), &
+#endif
               (m(1,1) - w(1)) * (m(2,2) - w(1)) - v(3,2)]
   norm = norm2(v(1:3, 1))
   fallback1: if (norm < threshold) then
     call math_eigh(w,v,error,m)
   else fallback1
     v(1:3,1) = v(1:3, 1) / norm
-    v(1:3,2) = [ v(1,2) + m(1, 3) * w(2), &
-                 v(2,2) + m(2, 3) * w(2), &
+#ifndef __INTEL_LLVM_COMPILER
+    v(1:3,2) = [m(1,3)*w(2) + v(1,2), &
+                m(2,3)*w(2) + v(2,2), &
+#else
+    v(1:3,2) = [IEEE_FMA(m(1,3),w(2),v(1,2)), &
+                IEEE_FMA(m(2,3),w(2),v(2,2)), &
+#endif
                 (m(1,1) - w(2)) * (m(2,2) - w(2)) - v(3,2)]
     norm = norm2(v(1:3, 2))
     fallback2: if (norm < threshold) then
@@ -1039,8 +1080,8 @@ pure subroutine math_eigh33(w,v,m)
     else fallback2
       v(1:3,2) = v(1:3, 2) / norm
       v(1:3,3) = math_cross(v(1:3,1),v(1:3,2))
-     endif fallback2
-  endif fallback1
+     end if fallback2
+  end if fallback1
 
 end subroutine math_eigh33
 
@@ -1066,9 +1107,10 @@ pure function math_rotationalPart(F) result(R)
     I_F                                                                                             ! first two invariants of F
   real(pReal) :: x,Phi
 
+
   C = matmul(transpose(F),F)
   I_C = math_invariantsSym33(C)
-  I_F = [math_trace33(F), 0.5*(math_trace33(F)**2 - math_trace33(matmul(F,F)))]
+  I_F = [math_trace33(F), 0.5_pReal*(math_trace33(F)**2 - math_trace33(matmul(F,F)))]
 
   x = math_clip(I_C(1)**2 -3.0_pReal*I_C(2),0.0_pReal)**(3.0_pReal/2.0_pReal)
   if (dNeq0(x)) then
@@ -1078,7 +1120,7 @@ pure function math_rotationalPart(F) result(R)
     lambda = sqrt(math_clip(lambda,0.0_pReal)/3.0_pReal)
   else
     lambda = sqrt(I_C(1)/3.0_pReal)
-  endif
+  end if
 
   I_U = [sum(lambda), lambda(1)*lambda(2)+lambda(2)*lambda(3)+lambda(3)*lambda(1), product(lambda)]
 
@@ -1087,7 +1129,7 @@ pure function math_rotationalPart(F) result(R)
     - I_U(1)*I_F(1) * transpose(F) &
     + I_U(1) * transpose(matmul(F,F)) &
     - matmul(F,C)
-  R = R /(I_U(1)*I_U(2)-I_U(3))
+  R = R*math_det33(R)**(-1.0_pReal/3.0_pReal)
 
 end function math_rotationalPart
 
@@ -1104,6 +1146,7 @@ pure function math_eigvalsh(m)
   real(pReal), dimension(size(m,1),size(m,1))               :: m_
   integer :: ierr
   real(pReal), dimension(size(m,1)**2) :: work
+
 
   m_= m                                                                                             ! copy matrix to input (will be destroyed)
   call dsyev('N','U',size(m,1),m_,size(m,1),math_eigvalsh,work,size(work,1),ierr)
@@ -1126,6 +1169,7 @@ pure function math_eigvalsh33(m)
   real(pReal) :: P, Q, rho, phi
   real(pReal), parameter :: TOL=1.e-14_pReal
 
+
   I = math_invariantsSym33(m)                                                                       ! invariants are coefficients in characteristic polynomial apart for the sign of c0 and c2 in http://arxiv.org/abs/physics/0610206
 
   P = I(2)-I(1)**2/3.0_pReal                                                                        ! different from http://arxiv.org/abs/physics/0610206 (this formulation was in DAMASK)
@@ -1144,7 +1188,7 @@ pure function math_eigvalsh33(m)
                                                              cos((phi+2.0_pReal*TAU)/3.0_pReal) &
                                                             ] &
                     + I(1)/3.0_pReal
-  endif
+  end if
 
 end function math_eigvalsh33
 
@@ -1156,6 +1200,7 @@ pure function math_invariantsSym33(m)
 
   real(pReal), dimension(3,3), intent(in) :: m
   real(pReal), dimension(3) :: math_invariantsSym33
+
 
   math_invariantsSym33(1) = math_trace33(m)
   math_invariantsSym33(2) = m(1,1)*m(2,2) + m(1,1)*m(3,3) + m(2,2)*m(3,3) &
@@ -1193,7 +1238,7 @@ integer pure function math_binomial(n,k)
   do i = 1, k_
     math_binomial = (math_binomial * n_)/i
     n_ = n_ -1
-  enddo
+  end do
 
 end function math_binomial
 
@@ -1257,7 +1302,7 @@ real(pReal) pure elemental function math_clip(a, left, right)
   if (present(right)) math_clip = min(right,math_clip)
   if (present(left) .and. present(right)) then
     if (left>right) error stop 'left > right'
-  endif
+  end if
 
 end function math_clip
 
@@ -1265,7 +1310,7 @@ end function math_clip
 !--------------------------------------------------------------------------------------------------
 !> @brief Check correctness of some math functions.
 !--------------------------------------------------------------------------------------------------
-subroutine selfTest
+subroutine selfTest()
 
   integer, dimension(2,4) :: &
     sort_in_   = reshape([+1,+5,  +5,+6,  -1,-1,  +3,-2],[2,4])
@@ -1341,7 +1386,7 @@ subroutine selfTest
   call random_number(v3_3)
   call random_number(v3_4)
 
-  if (dNeq(abs(dot_product(math_cross(v3_1-v3_4,v3_2-v3_4),v3_3-v3_4))/6.0, &
+  if (dNeq(abs(dot_product(math_cross(v3_1-v3_4,v3_2-v3_4),v3_3-v3_4))/6.0_pReal, &
           math_volTetrahedron(v3_1,v3_2,v3_3,v3_4),tol=1.0e-12_pReal)) &
     error stop 'math_volTetrahedron'
 
@@ -1357,7 +1402,7 @@ subroutine selfTest
 
   do while(abs(math_det33(t33))<1.0e-9_pReal)
     call random_number(t33)
-  enddo
+  end do
   if (any(dNeq0(matmul(t33,math_inv33(t33)) - math_eye(3),tol=1.0e-9_pReal))) &
     error stop 'math_inv33'
 
@@ -1373,11 +1418,13 @@ subroutine selfTest
 
   do while(math_det33(t33)<1.0e-2_pReal)                                                            ! O(det(F)) = 1
     call random_number(t33)
-  enddo
+  end do
   t33_2 = math_rotationalPart(transpose(t33))
   t33   = math_rotationalPart(t33)
   if (any(dNeq0(matmul(t33_2,t33) - math_I3,tol=1.0e-10_pReal))) &
-    error stop 'math_rotationalPart'
+    error stop 'math_rotationalPart (forward-backward)'
+  if (dNeq(1.0_pReal,math_det33(math_rotationalPart(t33)),tol=1.0e-10_pReal)) &
+    error stop 'math_rotationalPart (determinant)'
 
   call random_number(r)
   d = int(r*5.0_pReal) + 1

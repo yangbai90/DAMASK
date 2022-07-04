@@ -2,14 +2,18 @@ import copy
 from io import StringIO
 from collections.abc import Iterable
 import abc
-from pathlib import Path
 from typing import Union, Dict, Any, Type, TypeVar
 
 import numpy as np
 import yaml
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:
+    from yaml import SafeLoader                                                                     # type: ignore
 
 from ._typehints import FileHandle
 from . import Rotation
+from . import util
 
 MyType = TypeVar('MyType', bound='Config')
 
@@ -53,7 +57,7 @@ class Config(dict):
                  **kwargs):
         """Initialize from YAML, dict, or key=value pairs."""
         if isinstance(yml,str):
-            kwargs.update(yaml.safe_load(yml))
+            kwargs.update(yaml.load(yml, Loader=SafeLoader))
         elif isinstance(yml,dict):
             kwargs.update(yml)
 
@@ -144,10 +148,7 @@ class Config(dict):
             Configuration from file.
 
         """
-        fhandle = open(fname) if isinstance(fname, (str, Path)) else \
-                  fname
-
-        return cls(yaml.safe_load(fhandle))
+        return cls(yaml.load(util.open_text(fname), Loader=SafeLoader))
 
     def save(self,
              fname: FileHandle,
@@ -163,9 +164,6 @@ class Config(dict):
             Keyword arguments parsed to yaml.dump.
 
         """
-        fhandle = open(fname,'w',newline='\n') if isinstance(fname, (str, Path)) else \
-                  fname
-
         if 'width' not in kwargs:
             kwargs['width'] = 256
         if 'default_flow_style' not in kwargs:
@@ -173,6 +171,7 @@ class Config(dict):
         if 'sort_keys' not in kwargs:
             kwargs['sort_keys'] = False
 
+        fhandle = util.open_text(fname,'w')
         try:
             fhandle.write(yaml.dump(self,Dumper=NiceDumper,**kwargs))
         except TypeError:                                                                           # compatibility with old pyyaml

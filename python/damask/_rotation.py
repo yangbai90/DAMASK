@@ -88,7 +88,7 @@ class Rotation:
 
 
     def __repr__(self) -> str:
-        """Represent rotation as unit quaternion(s)."""
+        """Give short human-readable summary."""
         return f'Quaternion{" " if self.quaternion.shape == (4,) else "s of shape "+str(self.quaternion.shape[:-1])+chr(10)}'\
                + str(self.quaternion)
 
@@ -418,15 +418,15 @@ class Rotation:
 
 
     def reshape(self: MyType,
-                shape: Union[int, Tuple[int, ...]],
+                shape: Union[int, IntSequence],
                 order: Literal['C','F','A'] = 'C') -> MyType:
         """
         Reshape array.
 
         Parameters
         ----------
-        shape : int or tuple of ints
-            The new shape should be compatible with the original shape.
+        shape : int or sequence of ints
+            New shape, number of elements needs to match the original shape.
             If an integer is supplied, then the result will be a 1-D array of that length.
         order : {'C', 'F', 'A'}, optional
             'C' flattens in row-major (C-style) order.
@@ -446,15 +446,15 @@ class Rotation:
 
 
     def broadcast_to(self: MyType,
-                     shape: Union[int, Tuple[int, ...]],
+                     shape: Union[int, IntSequence],
                      mode: Literal['left', 'right'] = 'right') -> MyType:
         """
         Broadcast array.
 
         Parameters
         ----------
-        shape : int or tuple of ints
-            Shape of broadcasted array.
+        shape : int or sequence of ints
+            Shape of broadcasted array, needs to be compatible with the original shape.
         mode : str, optional
             Where to preferentially locate missing dimensions.
             Either 'left' or 'right' (default).
@@ -465,9 +465,9 @@ class Rotation:
             Rotation broadcasted to given shape.
 
         """
-        if isinstance(shape,(int,np.integer)): shape = (shape,)
-        return self.copy(np.broadcast_to(self.quaternion.reshape(util.shapeshifter(self.shape,shape,mode)+(4,)),
-                                                  shape+(4,)))
+        shape_ = (shape,) if isinstance(shape,(int,np.integer)) else tuple(shape)
+        return self.copy(np.broadcast_to(self.quaternion.reshape(util.shapeshifter(self.shape,shape_,mode)+(4,)),
+                                                  shape_+(4,)))
 
 
     def average(self: MyType,
@@ -551,7 +551,7 @@ class Rotation:
         Parameters
         ----------
         degrees : bool, optional
-            Return angles in degrees.
+            Return angles in degrees. Defaults to False.
 
         Returns
         -------
@@ -721,7 +721,7 @@ class Rotation:
         Parameters
         ----------
         q : numpy.ndarray, shape (...,4)
-            Unit quaternion (q_0, q_1, q_2, q_3) in positive real hemisphere, i.e. ǀqǀ = 1, q_0 ≥ 0.
+            Unit quaternion (q_0, q_1, q_2, q_3) in positive real hemisphere, i.e. ǀqǀ = 1 and q_0 ≥ 0.
         accept_homomorph : bool, optional
             Allow homomorphic variants, i.e. q_0 < 0 (negative real hemisphere).
             Defaults to False.
@@ -777,11 +777,11 @@ class Rotation:
 
     @staticmethod
     def from_axis_angle(axis_angle: np.ndarray,
-                        degrees:bool = False,
+                        degrees: bool = False,
                         normalize: bool = False,
                         P: Literal[1, -1] = -1) -> 'Rotation':
         """
-        Initialize from Axis angle pair.
+        Initialize from axis–angle pair.
 
         Parameters
         ----------
@@ -818,12 +818,12 @@ class Rotation:
                    orthonormal: bool = True,
                    reciprocal: bool = False) -> 'Rotation':
         """
-        Initialize from lattice basis vectors.
+        Initialize from basis vector triplet.
 
         Parameters
         ----------
         basis : numpy.ndarray, shape (...,3,3)
-            Three three-dimensional lattice basis vectors.
+            Three three-dimensional basis vectors.
         orthonormal : bool, optional
             Basis is strictly orthonormal, i.e. is free of stretch components. Defaults to True.
         reciprocal : bool, optional
@@ -857,7 +857,7 @@ class Rotation:
         Parameters
         ----------
         R : numpy.ndarray, shape (...,3,3)
-            Rotation matrix with det(R) = 1, R.T ∙ R = I.
+            Rotation matrix with det(R) = 1 and R.T ∙ R = I.
 
         """
         return Rotation.from_basis(R)
@@ -866,14 +866,14 @@ class Rotation:
     def from_parallel(a: np.ndarray,
                       b: np.ndarray ) -> 'Rotation':
         """
-        Initialize from pairs of two orthogonal lattice basis vectors.
+        Initialize from pairs of two orthogonal basis vectors.
 
         Parameters
         ----------
         a : numpy.ndarray, shape (...,2,3)
-            Two three-dimensional lattice vectors of first orthogonal basis.
+            Two three-dimensional vectors of first orthogonal basis.
         b : numpy.ndarray, shape (...,2,3)
-            Corresponding three-dimensional lattice vectors of second basis.
+            Corresponding three-dimensional vectors of second basis.
 
         """
         a_ = np.array(a)
@@ -896,7 +896,7 @@ class Rotation:
                               normalize: bool = False,
                               P: Literal[1, -1] = -1) -> 'Rotation':
         """
-        Initialize from Rodrigues–Frank vector (angle separated from axis).
+        Initialize from Rodrigues–Frank vector (with angle separated from axis).
 
         Parameters
         ----------
@@ -979,24 +979,22 @@ class Rotation:
 
 
     @staticmethod
-    def from_random(shape: Tuple[int, ...] = None,
+    def from_random(shape: Union[int, IntSequence] = None,
                     rng_seed: NumpyRngSeed = None) -> 'Rotation':
         """
-        Initialize with random rotation.
-
-        Rotations are uniformly distributed.
+        Initialize with samples from a uniform distribution.
 
         Parameters
         ----------
-        shape : tuple of ints, optional
-            Shape of the sample. Defaults to None, which gives a single rotation.
+        shape : int or sequence of ints, optional
+            Shape of the returned array. Defaults to None, which gives a scalar.
         rng_seed : {None, int, array_like[ints], SeedSequence, BitGenerator, Generator}, optional
             A seed to initialize the BitGenerator.
             Defaults to None, i.e. unpredictable entropy will be pulled from the OS.
 
         """
         rng = np.random.default_rng(rng_seed)
-        r = rng.random(3 if shape is None else tuple(shape)+(3,) if hasattr(shape, '__iter__') else (shape,3)) #type: ignore
+        r = rng.random(3 if shape is None else tuple(shape)+(3,) if hasattr(shape, '__iter__') else (shape,3)) # type: ignore
 
         A = np.sqrt(r[...,2])
         B = np.sqrt(1.0-r[...,2])
@@ -1011,12 +1009,12 @@ class Rotation:
     @staticmethod
     def from_ODF(weights: np.ndarray,
                  phi: np.ndarray,
-                 N: int = 500,
-                 degrees: bool = True,
+                 shape: Union[int, IntSequence] = None,
+                 degrees: bool = False,
                  fractions: bool = True,
                  rng_seed: NumpyRngSeed = None) -> 'Rotation':
         """
-        Sample discrete values from a binned orientation distribution function (ODF).
+        Initialize with samples from a binned orientation distribution function (ODF).
 
         Parameters
         ----------
@@ -1024,9 +1022,8 @@ class Rotation:
             Texture intensity values (probability density or volume fraction) at Euler space grid points.
         phi : numpy.ndarray, shape (n,3)
             Grid coordinates in Euler space at which weights are defined.
-        N : integer, optional
-            Number of discrete orientations to be sampled from the given ODF.
-            Defaults to 500.
+        shape : int or sequence of ints, optional
+            Shape of the returned array. Defaults to None, which gives a scalar.
         degrees : bool, optional
             Euler space grid coordinates are in degrees. Defaults to True.
         fractions : bool, optional
@@ -1035,11 +1032,6 @@ class Rotation:
         rng_seed: {None, int, array_like[ints], SeedSequence, BitGenerator, Generator}, optional
             A seed to initialize the BitGenerator.
             Defaults to None, i.e. unpredictable entropy will be pulled from the OS.
-
-        Returns
-        -------
-        samples : damask.Rotation, shape (N)
-            Array of sampled rotations that approximate the input ODF.
 
         Notes
         -----
@@ -1063,26 +1055,27 @@ class Rotation:
         dg = 1.0 if fractions else _dg(phi,degrees)
         dV_V = dg * np.maximum(0.0,weights.squeeze())
 
-        return Rotation.from_Euler_angles(phi[util.hybrid_IA(dV_V,N,rng_seed)],degrees)
+        N = 1 if shape is None else np.prod(shape)
+        return Rotation.from_Euler_angles(phi[util.hybrid_IA(dV_V,N,rng_seed)],degrees).reshape(() if shape is None else shape)
 
 
     @staticmethod
     def from_spherical_component(center: 'Rotation',
                                  sigma: float,
-                                 N: int = 500,
-                                 degrees: bool = True,
+                                 shape: Union[int, IntSequence] = None,
+                                 degrees: bool = False,
                                  rng_seed: NumpyRngSeed = None) -> 'Rotation':
         """
-        Calculate set of rotations with Gaussian distribution around center.
+        Initialize with samples from a Gaussian distribution around a given center.
 
         Parameters
         ----------
-        center : Rotation
-            Central Rotation.
+        center : Rotation or Orientation
+            Central rotation.
         sigma : float
             Standard deviation of (Gaussian) misorientation distribution.
-        N : int, optional
-            Number of samples. Defaults to 500.
+        shape : int or sequence of ints, optional
+            Shape of the returned array. Defaults to None, which gives a scalar.
         degrees : bool, optional
             sigma is given in degrees. Defaults to True.
         rng_seed : {None, int, array_like[ints], SeedSequence, BitGenerator, Generator}, optional
@@ -1092,53 +1085,83 @@ class Rotation:
         """
         rng = np.random.default_rng(rng_seed)
         sigma = np.radians(sigma) if degrees else sigma
+        N = 1 if shape is None else np.prod(shape)
         u,Theta  = (rng.random((N,2)) * 2.0 * np.array([1,np.pi]) - np.array([1.0, 0])).T
         omega = abs(rng.normal(scale=sigma,size=N))
         p = np.column_stack([np.sqrt(1-u**2)*np.cos(Theta),
                              np.sqrt(1-u**2)*np.sin(Theta),
                              u, omega])
 
-        return  Rotation.from_axis_angle(p) * center
+        return Rotation.from_axis_angle(p).reshape(() if shape is None else shape) * center
 
 
     @staticmethod
-    def from_fiber_component(alpha: IntSequence,
-                             beta: IntSequence,
+    def from_fiber_component(crystal: IntSequence,
+                             sample: IntSequence,
                              sigma: float = 0.0,
-                             N: int = 500,
-                             degrees: bool = True,
+                             shape: Union[int, IntSequence] = None,
+                             degrees: bool = False,
                              rng_seed: NumpyRngSeed = None):
         """
-        Calculate set of rotations with Gaussian distribution around direction.
+        Initialize with samples from a Gaussian distribution around a given direction.
 
         Parameters
         ----------
-        alpha : numpy.ndarray, shape (2)
-            Polar coordinates (phi from x, theta from z) of fiber direction in crystal frame.
-        beta : numpy.ndarray, shape (2)
-            Polar coordinates (phi from x, theta from z) of fiber direction in sample frame.
+        crystal : numpy.ndarray, shape (2)
+            Polar coordinates (polar angle θ from [0 0 1], azimuthal angle φ from [1 0 0])
+            of fiber direction in crystal frame.
+        sample : numpy.ndarray, shape (2)
+            Polar coordinates (polar angle θ from z, azimuthal angle φ from x)
+            of fiber direction in sample frame.
         sigma : float, optional
             Standard deviation of (Gaussian) misorientation distribution.
             Defaults to 0.
-        N : int, optional
-            Number of samples. Defaults to 500.
+        shape : int or sequence of ints, optional
+            Shape of the returned array. Defaults to None, which gives a scalar.
         degrees : bool, optional
-            sigma, alpha, and beta are given in degrees.
+            sigma and polar coordinates are given in degrees.
         rng_seed : {None, int, array_like[ints], SeedSequence, BitGenerator, Generator}, optional
             A seed to initialize the BitGenerator.
             Defaults to None, i.e. unpredictable entropy will be pulled from the OS.
 
+        Notes
+        -----
+        The crystal direction for (θ=0,φ=0) is [0 0 1],
+        the sample direction for (θ=0,φ=0) is z.
+
+        Polar coordinates follow the ISO 80000-2:2019 convention
+        typically used in physics.
+        See https://en.wikipedia.org/wiki/Spherical_coordinate_system.
+
+        Ranges 0≤θ≤π and 0≤φ≤2π give a unique set of coordinates.
+
+        Examples
+        --------
+        Create an ideal α-fiber texture (<1 1 0> ǀǀ RD=x) consisting of
+        200 orientations:
+
+        >>> import damask
+        >>> import numpy as np
+        >>> alpha = damask.Rotation.from_fiber_component([np.pi/4.,0.],[np.pi/2.,0.],shape=200)
+
+        Create an ideal γ-fiber texture (<1 1 1> ǀǀ ND=z) consisting of
+        100 orientations:
+
+        >>> import damask
+        >>> gamma = damask.Rotation.from_fiber_component([54.7,45.0],[0.,0.],shape=100,degrees=True)
+
         """
         rng = np.random.default_rng(rng_seed)
-        sigma_,alpha_,beta_ = (np.radians(coordinate) for coordinate in (sigma,alpha,beta)) if degrees else \
-                              map(np.array, (sigma,alpha,beta))
+        sigma_,alpha,beta = (np.radians(coordinate) for coordinate in (sigma,crystal,sample)) if degrees else \
+                             map(np.array, (sigma,crystal,sample))
 
-        d_cr  = np.array([np.sin(alpha_[0])*np.cos(alpha_[1]), np.sin(alpha_[0])*np.sin(alpha_[1]), np.cos(alpha_[0])])
-        d_lab = np.array([np.sin( beta_[0])*np.cos( beta_[1]), np.sin( beta_[0])*np.sin( beta_[1]), np.cos( beta_[0])])
+        d_cr  = np.array([np.sin(alpha[0])*np.cos(alpha[1]), np.sin(alpha[0])*np.sin(alpha[1]), np.cos(alpha[0])])
+        d_lab = np.array([np.sin( beta[0])*np.cos( beta[1]), np.sin( beta[0])*np.sin( beta[1]), np.cos( beta[0])])
         ax_align = np.append(np.cross(d_lab,d_cr), np.arccos(np.dot(d_lab,d_cr)))
         if np.isclose(ax_align[3],0.0): ax_align[:3] = np.array([1,0,0])
         R_align  = Rotation.from_axis_angle(ax_align if ax_align[3] > 0.0 else -ax_align,normalize=True) # rotate fiber axis from sample to crystal frame
 
+        N = 1 if shape is None else np.prod(shape)
         u,Theta  = (rng.random((N,2)) * 2.0 * np.array([1,np.pi]) - np.array([1.0, 0])).T
         omega  = abs(rng.normal(scale=sigma_,size=N))
         p = np.column_stack([np.sqrt(1-u**2)*np.cos(Theta),
@@ -1148,9 +1171,9 @@ class Rotation:
         f = np.column_stack((np.broadcast_to(d_lab,(N,3)),rng.random(N)*np.pi))
         f[::2,:3] *= -1                                                                             # flip half the rotation axes to negative sense
 
-        return R_align.broadcast_to(N) \
-             * Rotation.from_axis_angle(p,normalize=True) \
-             * Rotation.from_axis_angle(f)
+        return (R_align.broadcast_to(N)
+              * Rotation.from_axis_angle(p,normalize=True)
+              * Rotation.from_axis_angle(f)).reshape(() if shape is None else shape)
 
 
 ####################################################################################################
@@ -1349,7 +1372,7 @@ class Rotation:
         w[np.isclose(w[...,0],1.0+0.0j),1:] = 0.
         w[np.isclose(w[...,1],1.0+0.0j),2:] = 0.
         vr = np.swapaxes(vr,-1,-2)
-        ax = np.where(np.abs(diag_delta)<1e-12,
+        ax = np.where(np.abs(diag_delta)<1e-13,
                              np.real(vr[np.isclose(w,1.0+0.0j)]).reshape(om.shape[:-2]+(3,)),
                       np.abs(np.real(vr[np.isclose(w,1.0+0.0j)]).reshape(om.shape[:-2]+(3,))) \
                       *np.sign(diag_delta))
@@ -1558,14 +1581,13 @@ class Rotation:
     @staticmethod
     def _ho2ax(ho: np.ndarray) -> np.ndarray:
         """Homochoric vector to axis–angle pair."""
-        tfit = np.array([+1.0000000000018852,      -0.5000000002194847,
-                         -0.024999992127593126,    -0.003928701544781374,
-                         -0.0008152701535450438,   -0.0002009500426119712,
-                         -0.00002397986776071756,  -0.00008202868926605841,
-                         +0.00012448715042090092,  -0.0001749114214822577,
-                         +0.0001703481934140054,   -0.00012062065004116828,
-                         +0.000059719705868660826, -0.00001980756723965647,
-                         +0.000003953714684212874, -0.00000036555001439719544])
+        tfit = np.array([+0.9999999999999968,     -0.49999999999986866,     -0.025000000000632055,
+                         -0.003928571496460683,   -0.0008164666077062752,   -0.00019411896443261646,
+                         -0.00004985822229871769, -0.000014164962366386031, -1.9000248160936107e-6,
+                         -5.72184549898506e-6,    +7.772149920658778e-6,    -0.00001053483452909705,
+                         +9.528014229335313e-6,   -5.660288876265125e-6,    +1.2844901692764126e-6,
+                         +1.1255185726258763e-6,  -1.3834391419956455e-6,   +7.513691751164847e-7,
+                         -2.401996891720091e-7,   +4.386887017466388e-8,    -3.5917775353564864e-9])
         hmag_squared = np.sum(ho**2.,axis=-1,keepdims=True)
         s = np.sum(tfit*hmag_squared**np.arange(len(tfit)),axis=-1,keepdims=True)
         with np.errstate(invalid='ignore'):
@@ -1656,7 +1678,7 @@ class Rotation:
 
         """
         with np.errstate(invalid='ignore',divide='ignore'):
-            # get pyramide and scale by grid parameter ratio
+            # get pyramid and scale by grid parameter ratio
             XYZ = np.take_along_axis(cu,Rotation._get_pyramid_order(cu,'forward'),-1) * _sc
             order = np.abs(XYZ[...,1:2]) <= np.abs(XYZ[...,0:1])
             q = np.pi/12.0 * np.where(order,XYZ[...,1:2],XYZ[...,0:1]) \

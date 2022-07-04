@@ -22,6 +22,32 @@ module phase
   implicit none
   private
 
+  type :: tState
+    integer :: &
+      sizeState        = 0, &                                                                       !< size of state
+      sizeDotState     = 0, &                                                                       !< size of dot state, i.e. state(1:sizeDot) follows time evolution by dotState rates
+      offsetDeltaState = 0, &                                                                       !< index offset of delta state
+      sizeDeltaState   = 0                                                                          !< size of delta state, i.e. state(offset+1:offset+sizeDelta) follows time evolution by deltaState increments
+    real(pReal), allocatable, dimension(:) :: &
+      atol
+    ! http://stackoverflow.com/questions/3948210
+    real(pReal), pointer,     dimension(:,:), contiguous :: &                                       !< is basically an allocatable+target, but in a type needs to be pointer
+      state0, &
+      state, &                                                                                      !< state
+      dotState, &                                                                                   !< rate of state change
+      deltaState                                                                                    !< increment of state change
+    real(pReal), pointer,     dimension(:,:)  :: &
+      deltaState2
+  end type
+
+  type, extends(tState) :: tPlasticState
+    logical :: nonlocal = .false.
+  end type
+
+  type :: tSourceState
+    type(tState), dimension(:), allocatable :: p                                                    !< tState for each active source mechanism in a phase
+  end type
+
 
   character(len=2), allocatable, dimension(:) :: phase_lattice
   real(pReal),      allocatable, dimension(:) :: phase_cOverA
@@ -513,7 +539,8 @@ subroutine crystallite_init()
   class(tNode), pointer :: &
     num_crystallite, &
     phases
-
+  character(len=pStringLen) :: &
+    extmsg = ''
 
   num_crystallite => config_numerics%get('crystallite',defaultVal=emptyDict)
 
@@ -529,22 +556,19 @@ subroutine crystallite_init()
   num%nState                 = num_crystallite%get_asInt   ('nState',           defaultVal=20)
   num%nStress                = num_crystallite%get_asInt   ('nStress',          defaultVal=40)
 
-  if (num%subStepMinCryst   <= 0.0_pReal)      call IO_error(301,ext_msg='subStepMinCryst')
-  if (num%subStepSizeCryst  <= 0.0_pReal)      call IO_error(301,ext_msg='subStepSizeCryst')
-  if (num%stepIncreaseCryst <= 0.0_pReal)      call IO_error(301,ext_msg='stepIncreaseCryst')
+  if (num%subStepMinCryst   <= 0.0_pReal)      extmsg = trim(extmsg)//' subStepMinCryst'
+  if (num%subStepSizeCryst  <= 0.0_pReal)      extmsg = trim(extmsg)//' subStepSizeCryst'
+  if (num%stepIncreaseCryst <= 0.0_pReal)      extmsg = trim(extmsg)//' stepIncreaseCryst'
+  if (num%subStepSizeLp <= 0.0_pReal)          extmsg = trim(extmsg)//' subStepSizeLp'
+  if (num%subStepSizeLi <= 0.0_pReal)          extmsg = trim(extmsg)//' subStepSizeLi'
+  if (num%rtol_crystalliteState  <= 0.0_pReal) extmsg = trim(extmsg)//' rtol_crystalliteState'
+  if (num%rtol_crystalliteStress <= 0.0_pReal) extmsg = trim(extmsg)//' rtol_crystalliteStress'
+  if (num%atol_crystalliteStress <= 0.0_pReal) extmsg = trim(extmsg)//' atol_crystalliteStress'
+  if (num%iJacoLpresiduum < 1)                 extmsg = trim(extmsg)//' iJacoLpresiduum'
+  if (num%nState  < 1)                         extmsg = trim(extmsg)//' nState'
+  if (num%nStress < 1)                         extmsg = trim(extmsg)//' nStress'
 
-  if (num%subStepSizeLp <= 0.0_pReal)          call IO_error(301,ext_msg='subStepSizeLp')
-  if (num%subStepSizeLi <= 0.0_pReal)          call IO_error(301,ext_msg='subStepSizeLi')
-
-  if (num%rtol_crystalliteState  <= 0.0_pReal) call IO_error(301,ext_msg='rtol_crystalliteState')
-  if (num%rtol_crystalliteStress <= 0.0_pReal) call IO_error(301,ext_msg='rtol_crystalliteStress')
-  if (num%atol_crystalliteStress <= 0.0_pReal) call IO_error(301,ext_msg='atol_crystalliteStress')
-
-  if (num%iJacoLpresiduum < 1)                 call IO_error(301,ext_msg='iJacoLpresiduum')
-
-  if (num%nState < 1)                          call IO_error(301,ext_msg='nState')
-  if (num%nStress< 1)                          call IO_error(301,ext_msg='nStress')
-
+  if (extmsg /= '') call IO_error(301,ext_msg=trim(extmsg))
 
   phases => config_material%get('phase')
 
@@ -602,8 +626,9 @@ function crystallite_push33ToRef(co,ce, tensor33)
     ce
   real(pReal), dimension(3,3) :: crystallite_push33ToRef
 
-  real(pReal), dimension(3,3)             :: T
+  real(pReal), dimension(3,3) :: T
   integer :: ph, en
+
 
   ph = material_phaseID(co,ce)
   en = material_phaseEntry(co,ce)

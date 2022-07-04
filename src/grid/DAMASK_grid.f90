@@ -15,11 +15,12 @@ program DAMASK_grid
 
   use prec
   use parallelization
-  use DAMASK_interface
+  use signals
+  use CLI
   use IO
   use config
   use math
-  use CPFEM2
+  use materialpoint
   use material
   use spectral_utilities
   use grid_mechanical_spectral_basic
@@ -56,9 +57,6 @@ program DAMASK_grid
 
 !--------------------------------------------------------------------------------------------------
 ! loop variables, convergence etc.
-  real(pReal), dimension(3,3), parameter :: &
-    ones  = 1.0_pReal, &
-    zeros = 0.0_pReal
   integer, parameter :: &
     subStepFactor = 2                                                                               !< for each substep, divide the last time increment by 2.0
   real(pReal) :: &
@@ -110,8 +108,6 @@ program DAMASK_grid
     load_steps, &
     load_step, &
     solver, &
-    initial_conditions, &
-    thermal, &
     step_bc, &
     step_mech, &
     step_discretization
@@ -121,7 +117,7 @@ program DAMASK_grid
 !--------------------------------------------------------------------------------------------------
 ! init DAMASK (all modules)
 
-  call CPFEM_initAll
+  call materialpoint_initAll()
   print'(/,1x,a)', '<<<+-  DAMASK_grid init  -+>>>'; flush(IO_STDOUT)
 
   print'(/,1x,a)', 'P. Shanthraj et al., Handbook of Mechanics of Materials, 2019'
@@ -138,8 +134,8 @@ program DAMASK_grid
   if (maxCutBack < 0)   call IO_error(301,ext_msg='maxCutBack')
 
   if (worldrank == 0) then
-    fileContent = IO_read(interface_loadFile)
-    fname = interface_loadFile
+    fileContent = IO_read(CLI_loadFile)
+    fname = CLI_loadFile
     if (scan(fname,'/') /= 0) fname = fname(scan(fname,'/',.true.)+1:)
     call results_openJobFile(parallel=.false.)
     call results_writeDataset_str(fileContent,'setup',fname,'load case definition (grid solver)')
@@ -276,7 +272,7 @@ program DAMASK_grid
         write(IO_STDOUT,'(2x,a,/,3(3(3x,f12.7,1x)/))',advance='no') 'R:',&
                  transpose(loadCases(l)%rot%asMatrix())
 
-      if (loadCases(l)%r <= 0.0)       errorID = 833
+      if (loadCases(l)%r <= 0.0_pReal) errorID = 833
       if (loadCases(l)%t < 0.0_pReal)  errorID = 834
       if (loadCases(l)%N < 1)          errorID = 835
       if (loadCases(l)%f_out < 1)      errorID = 836
@@ -294,7 +290,7 @@ program DAMASK_grid
       if (loadCases(l)%f_restart < huge(0)) &
         print'(2x,a,1x,i0)',   'f_restart:', loadCases(l)%f_restart
 
-      if (errorID > 0) call IO_error(error_ID = errorID, el = l)
+      if (errorID > 0) call IO_error(errorID,label1='line',ID1=l)
 
     endif reportAndCheck
   enddo
@@ -302,26 +298,24 @@ program DAMASK_grid
 !--------------------------------------------------------------------------------------------------
 ! doing initialization depending on active solvers
   call spectral_Utilities_init
-  do field = 1, nActiveFields
+  do field = 2, nActiveFields
     select case (ID(field))
-      case(FIELD_MECH_ID)
-        call mechanical_init
 
-      case(FIELD_THERMAL_ID)
-        initial_conditions => config_load%get('initial_conditions',defaultVal=emptyDict)
-        thermal            => initial_conditions%get('thermal',defaultVal=emptyDict)
-        call grid_thermal_spectral_init(thermal%get_asFloat('T'))
+      case (FIELD_THERMAL_ID)
+        call grid_thermal_spectral_init()
 
-      case(FIELD_DAMAGE_ID)
-        call grid_damage_spectral_init
+      case (FIELD_DAMAGE_ID)
+        call grid_damage_spectral_init()
 
     end select
-  enddo
+  end do
+
+  call mechanical_init()
 
 !--------------------------------------------------------------------------------------------------
 ! write header of output file
   if (worldrank == 0) then
-    writeHeader: if (interface_restartInc < 1) then
+    writeHeader: if (CLI_restartInc < 1) then
       open(newunit=statUnit,file=trim(getSolverJobName())//'.sta',form='FORMATTED',status='REPLACE')
       write(statUnit,'(a)') 'Increment Time CutbackLevel Converged IterationsNeeded'                ! statistics file
     else writeHeader
@@ -330,10 +324,10 @@ program DAMASK_grid
     endif writeHeader
   endif
 
-  writeUndeformed: if (interface_restartInc < 1) then
+  writeUndeformed: if (CLI_restartInc < 1) then
     print'(/,1x,a)', '... writing initial configuration to file .................................'
     flush(IO_STDOUT)
-    call CPFEM_results(0,0.0_pReal)
+    call materialpoint_results(0,0.0_pReal)
   endif writeUndeformed
 
   loadCaseLooping: do l = 1, size(loadCases)
@@ -354,7 +348,7 @@ program DAMASK_grid
       endif
       Delta_t = Delta_t * real(subStepFactor,pReal)**real(-cutBackLevel,pReal)                      ! depending on cut back level, decrease time step
 
-      skipping: if (totalIncsCounter <= interface_restartInc) then                                  ! not yet at restart inc?
+      skipping: if (totalIncsCounter <= CLI_restartInc) then                                  ! not yet at restart inc?
         t = t + Delta_t                                                                             ! just advance time, skip already performed calculation
         guess = .true.                                                                              ! QUESTION:why forced guessing instead of inheriting loadcase preference
       else skipping
@@ -393,7 +387,7 @@ program DAMASK_grid
               case(FIELD_DAMAGE_ID);  call grid_damage_spectral_forward(cutBack)
             end select
           enddo
-          if (.not. cutBack) call CPFEM_forward
+          if (.not. cutBack) call materialpoint_forward
 
 !--------------------------------------------------------------------------------------------------
 ! solve fields
@@ -455,15 +449,15 @@ program DAMASK_grid
           print'(/,1x,a,i0,a)', 'increment ', totalIncsCounter, ' NOT converged'
         endif; flush(IO_STDOUT)
 
-        call MPI_Allreduce(interface_SIGUSR1,signal,1_MPI_INTEGER_KIND,MPI_LOGICAL,MPI_LOR,MPI_COMM_WORLD,err_MPI)
+        call MPI_Allreduce(signals_SIGUSR1,signal,1_MPI_INTEGER_KIND,MPI_LOGICAL,MPI_LOR,MPI_COMM_WORLD,err_MPI)
         if (err_MPI /= 0_MPI_INTEGER_KIND) error stop 'MPI error'
         if (mod(inc,loadCases(l)%f_out) == 0 .or. signal) then
           print'(/,1x,a)', '... writing results to file ...............................................'
           flush(IO_STDOUT)
-          call CPFEM_results(totalIncsCounter,t)
+          call materialpoint_results(totalIncsCounter,t)
         endif
-        if (signal) call interface_setSIGUSR1(.false.)
-        call MPI_Allreduce(interface_SIGUSR2,signal,1_MPI_INTEGER_KIND,MPI_LOGICAL,MPI_LOR,MPI_COMM_WORLD,err_MPI)
+        if (signal) call signals_setSIGUSR1(.false.)
+        call MPI_Allreduce(signals_SIGUSR2,signal,1_MPI_INTEGER_KIND,MPI_LOGICAL,MPI_LOR,MPI_COMM_WORLD,err_MPI)
         if (err_MPI /= 0_MPI_INTEGER_KIND) error stop 'MPI error'
         if (mod(inc,loadCases(l)%f_restart) == 0 .or. signal) then
           do field = 1, nActiveFields
@@ -474,10 +468,10 @@ program DAMASK_grid
                 call grid_thermal_spectral_restartWrite
             end select
           end do
-          call CPFEM_restartWrite
+          call materialpoint_restartWrite
         endif
-        if (signal) call interface_setSIGUSR2(.false.)
-        call MPI_Allreduce(interface_SIGTERM,signal,1_MPI_INTEGER_KIND,MPI_LOGICAL,MPI_LOR,MPI_COMM_WORLD,err_MPI)
+        if (signal) call signals_setSIGUSR2(.false.)
+        call MPI_Allreduce(signals_SIGINT,signal,1_MPI_INTEGER_KIND,MPI_LOGICAL,MPI_LOR,MPI_COMM_WORLD,err_MPI)
         if (err_MPI /= 0_MPI_INTEGER_KIND) error stop 'MPI error'
         if (signal) exit loadCaseLooping
       endif skipping
@@ -507,7 +501,7 @@ subroutine getMaskedTensor(values,mask,tensor)
   integer :: i,j
 
 
-  values = 0.0
+  values = 0.0_pReal
   do i = 1,3
     row => tensor%get(i)
     do j = 1,3

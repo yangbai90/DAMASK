@@ -24,8 +24,7 @@ def default(tmp_path,ref_path):
     """Small Result file in temp location for modification."""
     fname = '12grains6x7x8_tensionY.hdf5'
     shutil.copy(ref_path/fname,tmp_path)
-    f = Result(tmp_path/fname)
-    return f.view(times=20.0)
+    return Result(tmp_path/fname).view(times=20.0)
 
 @pytest.fixture
 def single_phase(tmp_path,ref_path):
@@ -69,8 +68,8 @@ class TestResult:
 
     @pytest.mark.parametrize('what',['increments','times','phases','fields'])                       # ToDo: discuss homogenizations
     def test_view_none(self,default,what):
-        n0 = default.view(what,False)
-        n1 = default.view(what,[])
+        n0 = default.view(**{what:False})
+        n1 = default.view(**{what:[]})
 
         label = 'increments' if what == 'times' else what
 
@@ -79,28 +78,24 @@ class TestResult:
 
     @pytest.mark.parametrize('what',['increments','times','phases','fields'])                       # ToDo: discuss homogenizations
     def test_view_more(self,default,what):
-        empty = default.view(what,False)
+        empty = default.view(**{what:False})
 
-        a = empty.view_more(what,'*').get('F')
-        b = empty.view_more(what,True).get('F')
+        a = empty.view_more(**{what:'*'}).get('F')
+        b = empty.view_more(**{what:True}).get('F')
 
         assert dict_equal(a,b)
 
     @pytest.mark.parametrize('what',['increments','times','phases','fields'])                       # ToDo: discuss homogenizations
     def test_view_less(self,default,what):
-        full = default.view(what,True)
+        full = default.view(**{what:True})
 
-        n0 = full.view_less(what,'*')
-        n1 = full.view_less(what,True)
+        n0 = full.view_less(**{what:'*'})
+        n1 = full.view_less(**{what:True})
 
         label = 'increments' if what == 'times' else what
 
         assert n0.get('F') is n1.get('F') is None and \
                len(n0.visible[label]) == len(n1.visible[label]) == 0
-
-    def test_view_invalid(self,default):
-        with pytest.raises(AttributeError):
-            default.view('invalid',True)
 
     def test_add_invalid(self,default):
         default.add_absolute('xxxx')
@@ -112,7 +107,7 @@ class TestResult:
         assert np.allclose(in_memory,in_file)
 
     @pytest.mark.parametrize('mode',
-        ['direct',pytest.param('function',marks=pytest.mark.xfail(sys.platform=='darwin',reason='n/a'))])
+        ['direct',pytest.param('function',marks=pytest.mark.xfail(sys.platform in ['darwin','win32'], reason='n/a'))])
     def test_add_calculation(self,default,tmp_path,mode):
 
         if mode == 'direct':
@@ -230,15 +225,19 @@ class TestResult:
         assert np.allclose(in_memory,in_file)
 
     @pytest.mark.parametrize('options',[{'uvw':[1,0,0],'with_symmetry':False},
-                                        {'hkl':[0,1,1],'with_symmetry':True}])
+                                        {'uvw':[1,1,0],'with_symmetry':True},
+                                        {'hkl':[0,1,1],'with_symmetry':True},
+                                        {'hkl':[1,1,1],'with_symmetry':False},
+                                        ])
     def test_add_pole(self,default,options):
         default.add_pole(**options)
         rot = default.place('O')
         in_memory = Orientation(rot,lattice=rot.dtype.metadata['lattice']).to_pole(**options)
-        brackets = ['[[]','[]]'] if 'uvw' in options.keys() else ['(',')']                          # escape fnmatch
-        label = '{}{} {} {}{}'.format(brackets[0],*(list(options.values())[0]),brackets[1])
-        in_file = default.place(f'p^{label}')
-        print(in_file - in_memory)
+        brackets = [['[[]','[]]'],'()','⟨⟩','{}'][('hkl' in options)*1+(options['with_symmetry'])*2]   # escape fnmatch
+        label = 'p^{}{} {} {}{}'.format(brackets[0],
+                                        *(list(options.values())[0]),
+                                        brackets[-1])
+        in_file = default.place(label)
         assert np.allclose(in_memory,in_file)
 
     def test_add_rotation(self,default):
@@ -385,7 +384,7 @@ class TestResult:
         result.export_VTK(output,parallel=False)
         fname = fname.split('.')[0]+f'_inc{(inc if type(inc) == int else inc[0]):0>2}.vti'
         v = VTK.load(tmp_path/fname)
-        v.set_comments('n/a')
+        v.comments = 'n/a'
         v.save(tmp_path/fname,parallel=False)
         with open(fname) as f:
             cur = hashlib.md5(f.read().encode()).hexdigest()
@@ -469,7 +468,7 @@ class TestResult:
     def test_get(self,update,request,ref_path,view,output,flatten,prune):
         result = Result(ref_path/'4grains2x4x3_compressionY.hdf5')
         for key,value in view.items():
-            result = result.view(key,value)
+            result = result.view(**{key:value})
 
         fname = request.node.name
         cur = result.get(output,flatten,prune)
@@ -494,7 +493,7 @@ class TestResult:
     def test_place(self,update,request,ref_path,view,output,flatten,prune,constituents):
         result = Result(ref_path/'4grains2x4x3_compressionY.hdf5')
         for key,value in view.items():
-            result = result.view(key,value)
+            result = result.view(**{key:value})
 
         fname = request.node.name
         cur = result.place(output,flatten,prune,constituents)

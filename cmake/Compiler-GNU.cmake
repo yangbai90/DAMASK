@@ -1,7 +1,7 @@
 ###################################################################################################
 # GNU Compiler
 ###################################################################################################
-if (CMAKE_Fortran_COMPILER_VERSION VERSION_LESS 8.0)
+if (CMAKE_Fortran_COMPILER_VERSION VERSION_LESS 9.0)
   message (FATAL_ERROR "GCC Compiler version: ${CMAKE_Fortran_COMPILER_VERSION} not supported")
 endif ()
 
@@ -102,12 +102,11 @@ set (COMPILE_FLAGS "${COMPILE_FLAGS} -Wsuggest-attribute=pure")
 set (COMPILE_FLAGS "${COMPILE_FLAGS} -Wsuggest-attribute=noreturn")
 set (COMPILE_FLAGS "${COMPILE_FLAGS} -Wconversion-extra")
 set (COMPILE_FLAGS "${COMPILE_FLAGS} -Wimplicit-procedure")
-set (COMPILE_FLAGS "${COMPILE_FLAGS} -Wno-unused-parameter")
+set (COMPILE_FLAGS "${COMPILE_FLAGS} -Wunused-parameter")
 set (COMPILE_FLAGS "${COMPILE_FLAGS} -ffpe-summary=all")
 # print summary of floating point exeptions (invalid,zero,overflow,underflow,inexact,denormal)
 
 # Additional options
-# -Warray-temporarieswarnings:   because we have many temporary arrays (performance issue?)
 # -Wimplicit-interface:          no interfaces for lapack/MPI routines
 # -Wunsafe-loop-optimizations:   warn if the loop cannot be optimized due to nontrivial assumptions
 
@@ -136,10 +135,3 @@ set (DEBUG_FLAGS "${DEBUG_FLAGS} -fsanitize=undefined")
 # detect undefined behavior
 # Additional options
 # -fsanitize=address,leak,thread
-
-#------------------------------------------------------------------------------------------------
-#  precision settings
-set (PRECISION_FLAGS "${PRECISION_FLAGS} -fdefault-real-8")
-# set precision to 8 bytes for standard real (=8 for pReal). Will set size of double to 16 bytes as long as -fdefault-double-8 is not set
-set (PRECISION_FLAGS "${PRECISION_FLAGS} -fdefault-double-8")
-# set precision to 8 bytes for double real, would be 16 bytes if -fdefault-real-8 is used

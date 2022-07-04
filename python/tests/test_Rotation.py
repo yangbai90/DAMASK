@@ -6,6 +6,7 @@ from damask import Rotation
 from damask import Table
 from damask import _rotation
 from damask import grid_filters
+from damask import util
 
 n = 1000
 atol=1.e-4
@@ -300,14 +301,13 @@ def ro2ho(ro):
 #---------- Homochoric vector----------
 def ho2ax(ho):
     """Homochoric vector to axis angle pair."""
-    tfit = np.array([+1.0000000000018852,      -0.5000000002194847,
-                     -0.024999992127593126,    -0.003928701544781374,
-                     -0.0008152701535450438,   -0.0002009500426119712,
-                     -0.00002397986776071756,  -0.00008202868926605841,
-                     +0.00012448715042090092,  -0.0001749114214822577,
-                     +0.0001703481934140054,   -0.00012062065004116828,
-                     +0.000059719705868660826, -0.00001980756723965647,
-                     +0.000003953714684212874, -0.00000036555001439719544])
+    tfit = np.array([+0.9999999999999968,     -0.49999999999986866,     -0.025000000000632055,
+                     -0.003928571496460683,   -0.0008164666077062752,   -0.00019411896443261646,
+                     -0.00004985822229871769, -0.000014164962366386031, -1.9000248160936107e-6,
+                     -5.72184549898506e-6,    +7.772149920658778e-6,    -0.00001053483452909705,
+                     +9.528014229335313e-6,   -5.660288876265125e-6,    +1.2844901692764126e-6,
+                     +1.1255185726258763e-6,  -1.3834391419956455e-6,   +7.513691751164847e-7,
+                     -2.401996891720091e-7,   +4.386887017466388e-8,    -3.5917775353564864e-9])
     # normalize h and store the magnitude
     hmag_squared = np.sum(ho**2.)
     if iszero(hmag_squared):
@@ -1055,12 +1055,12 @@ class TestRotation:
 
 
     @pytest.mark.parametrize('sigma',[5,10,15,20])
-    @pytest.mark.parametrize('N',[1000,10000,100000])
-    def test_spherical_component(self,N,sigma):
+    @pytest.mark.parametrize('shape',[1000,10000,100000,(10,100)])
+    def test_spherical_component(self,sigma,shape):
         p = []
         for run in range(5):
             c = Rotation.from_random()
-            o = Rotation.from_spherical_component(c,sigma,N)
+            o = Rotation.from_spherical_component(c,sigma,shape,degrees=True)
             _, angles = c.misorientation(o).as_axis_angle(pair=True,degrees=True)
             angles[::2] *= -1                                                                       # flip angle for every second to symmetrize distribution
 
@@ -1072,21 +1072,21 @@ class TestRotation:
 
 
     @pytest.mark.parametrize('sigma',[5,10,15,20])
-    @pytest.mark.parametrize('N',[1000,10000,100000])
-    def test_from_fiber_component(self,N,sigma):
+    @pytest.mark.parametrize('shape',[1000,10000,100000,(10,100)])
+    def test_from_fiber_component(self,sigma,shape):
         p = []
         for run in range(5):
-            alpha = np.random.random()*2*np.pi,np.arccos(np.random.random())
-            beta  = np.random.random()*2*np.pi,np.arccos(np.random.random())
+            alpha = np.arccos(np.random.random()),np.random.random()*2*np.pi
+            beta  = np.arccos(np.random.random()),np.random.random()*2*np.pi
 
             f_in_C = np.array([np.sin(alpha[0])*np.cos(alpha[1]), np.sin(alpha[0])*np.sin(alpha[1]), np.cos(alpha[0])])
-            f_in_S = np.array([np.sin(beta[0] )*np.cos(beta[1] ), np.sin(beta[0] )*np.sin(beta[1] ), np.cos(beta[0] )])
+            f_in_S = np.array([np.sin( beta[0])*np.cos( beta[1]), np.sin( beta[0])*np.sin( beta[1]), np.cos( beta[0])])
             ax = np.append(np.cross(f_in_C,f_in_S), - np.arccos(np.dot(f_in_C,f_in_S)))
             n = Rotation.from_axis_angle(ax if ax[3] > 0.0 else ax*-1.0 ,normalize=True)           # rotation to align fiber axis in crystal and sample system
 
-            o = Rotation.from_fiber_component(alpha,beta,np.radians(sigma),N,False)
-            angles = np.arccos(np.clip(np.dot(o@np.broadcast_to(f_in_S,(N,3)),n@f_in_S),-1,1))
-            dist   = np.array(angles) * (np.random.randint(0,2,N)*2-1)
+            o = Rotation.from_fiber_component(alpha,beta,np.radians(sigma),shape,False)
+            angles = np.arccos(np.clip(np.dot(o@np.broadcast_to(f_in_S,tuple(util.aslist(shape))+(3,)),n@f_in_S),-1,1))
+            dist   = np.array(angles) * (np.random.randint(0,2,util.aslist(shape))*2-1)
 
             p.append(stats.normaltest(dist)[1])
 
@@ -1097,8 +1097,8 @@ class TestRotation:
 
     @pytest.mark.parametrize('fractions',[True,False])
     @pytest.mark.parametrize('degrees',[True,False])
-    @pytest.mark.parametrize('N',[2**13,2**14,2**15])
-    def test_ODF_cell(self,ref_path,fractions,degrees,N):
+    @pytest.mark.parametrize('shape',[2**13,2**14,2**15,(2**8,2**6)])
+    def test_ODF_cell(self,ref_path,fractions,degrees,shape):
         steps = np.array([144,36,36])
         limits = np.array([360.,90.,90.])
         rng = tuple(zip(np.zeros(3),limits))
@@ -1107,14 +1107,14 @@ class TestRotation:
         Eulers = grid_filters.coordinates0_point(steps,limits)
         Eulers = np.radians(Eulers) if not degrees else Eulers
 
-        Eulers_r = Rotation.from_ODF(weights,Eulers.reshape(-1,3,order='F'),N,degrees,fractions).as_Euler_angles(True)
-        weights_r = np.histogramdd(Eulers_r,steps,rng)[0].flatten(order='F')/N * np.sum(weights)
+        Eulers_r = Rotation.from_ODF(weights,Eulers.reshape(-1,3,order='F'),shape,degrees,fractions).as_Euler_angles(True)
+        weights_r = np.histogramdd(Eulers_r.reshape(-1,3),steps,rng)[0].flatten(order='F')/np.prod(shape) * np.sum(weights)
 
         if fractions: assert np.sqrt(((weights_r - weights) ** 2).mean()) < 4
 
     @pytest.mark.parametrize('degrees',[True,False])
-    @pytest.mark.parametrize('N',[2**13,2**14,2**15])
-    def test_ODF_node(self,ref_path,degrees,N):
+    @pytest.mark.parametrize('shape',[2**13,2**14,2**15,(2**8,2**6)])
+    def test_ODF_node(self,ref_path,degrees,shape):
         steps = np.array([144,36,36])
         limits = np.array([360.,90.,90.])
         rng = tuple(zip(-limits/steps*.5,limits-limits/steps*.5))
@@ -1125,8 +1125,8 @@ class TestRotation:
         Eulers = grid_filters.coordinates0_node(steps,limits)[:-1,:-1,:-1]
         Eulers = np.radians(Eulers) if not degrees else Eulers
 
-        Eulers_r = Rotation.from_ODF(weights,Eulers.reshape(-1,3,order='F'),N,degrees).as_Euler_angles(True)
-        weights_r = np.histogramdd(Eulers_r,steps,rng)[0].flatten(order='F')/N * np.sum(weights)
+        Eulers_r = Rotation.from_ODF(weights,Eulers.reshape(-1,3,order='F'),shape,degrees).as_Euler_angles(True)
+        weights_r = np.histogramdd(Eulers_r.reshape(-1,3),steps,rng)[0].flatten(order='F')/np.prod(shape) * np.sum(weights)
 
         assert np.sqrt(((weights_r - weights) ** 2).mean()) < 5
 

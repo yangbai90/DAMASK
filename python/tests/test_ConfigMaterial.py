@@ -1,3 +1,4 @@
+import sys
 import os
 import pytest
 import numpy as np
@@ -41,6 +42,7 @@ class TestConfigMaterial:
         material_config['material'][0]['constituents'][0]['O']=[0,0,0,0]
         assert not material_config.is_valid
 
+    @pytest.mark.xfail(sys.platform == 'win32', reason='utf8 "not equal" might cause trouble')
     def test_invalid_fraction(self,ref_path):
         material_config = ConfigMaterial.load(ref_path/'material.yaml')
         material_config['material'][0]['constituents'][0]['v']=.9
@@ -90,7 +92,7 @@ class TestConfigMaterial:
                        np.ones(N*2),np.zeros(N*2),np.ones(N*2),np.ones(N*2),
                        np.ones(N*2),
                       )).T
-        t = Table(a,{'varying':1,'constant':4,'ones':1})
+        t = Table({'varying':1,'constant':4,'ones':1},a)
         c = ConfigMaterial.from_table(t,**{'phase':'varying','O':'constant','homogenization':'ones'})
         assert len(c['material']) == N
         for i,m in enumerate(c['material']):
@@ -102,7 +104,7 @@ class TestConfigMaterial:
                        np.ones(N*2),np.zeros(N*2),np.ones(N*2),np.ones(N*2),
                        np.ones(N*2),
                       )).T
-        t = Table(a,{'varying':1,'constant':4,'ones':1})
+        t = Table({'varying':1,'constant':4,'ones':1},a)
         c = ConfigMaterial.from_table(t,**{'phase':'varying','O':'constant','homogenization':1})
         assert len(c['material']) == N
         for i,m in enumerate(c['material']):
@@ -111,15 +113,15 @@ class TestConfigMaterial:
     @pytest.mark.parametrize('N,n,kw',[
                                         (1,1,{'phase':'Gold',
                                               'O':[1,0,0,0],
-                                              'F_i':np.eye(3),
+                                              'V_e':np.eye(3),
                                               'homogenization':'SX'}),
                                         (3,1,{'phase':'Gold',
                                               'O':Rotation.from_random(3),
-                                              'F_i':np.broadcast_to(np.eye(3),(3,3,3)),
+                                              'V_e':np.broadcast_to(np.eye(3),(3,3,3)),
                                               'homogenization':'SX'}),
                                         (2,3,{'phase':np.broadcast_to(['a','b','c'],(2,3)),
                                               'O':Rotation.from_random((2,3)),
-                                              'F_i':np.broadcast_to(np.eye(3),(2,3,3,3)),
+                                              'V_e':np.broadcast_to(np.eye(3),(2,3,3,3)),
                                               'homogenization':['SX','PX']}),
                                         ])
     def test_material_add(self,kw,N,n):

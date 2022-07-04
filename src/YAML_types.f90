@@ -119,7 +119,8 @@ module YAML_types
 
   type, extends(tNode), public :: tList
 
-    class(tItem), pointer  :: first => NULL()
+    class(tItem), pointer :: first => NULL(), &
+                             last => NULL()
 
     contains
     procedure :: asFormattedString => tList_asFormattedString
@@ -144,7 +145,7 @@ module YAML_types
   end type tDict
 
 
-  type :: tItem
+  type, public :: tItem
     character(len=:), allocatable :: key
     class(tNode),     pointer     :: node => NULL()
     class(tItem),     pointer     :: next => NULL()
@@ -410,7 +411,7 @@ function tNode_get_byIndex(self,i) result(node)
 
   do j = 2,i
     item => item%next
-  enddo
+  end do
   node => item%node
 
 end function tNode_get_byIndex
@@ -680,7 +681,7 @@ function tNode_contains(self,k)  result(exists)
           exists = .true.
           return
         end if
-      enddo
+      end do
     class is(tList)
       list => self%asList()
       do j=1, list%length
@@ -688,7 +689,7 @@ function tNode_contains(self,k)  result(exists)
           exists = .true.
           return
         end if
-      enddo
+      end do
     class default
       call IO_error(706,ext_msg='Expected list or dict')
   end select
@@ -730,7 +731,7 @@ function tNode_get_byKey(self,k,defaultVal) result(node)
     end if
     item => item%next
     j = j + 1
-  enddo
+  end do
 
   if (.not. found) then
     call IO_error(143,ext_msg=k)
@@ -1218,6 +1219,7 @@ function tList_as1dFloat(self)
   item => self%first
   do i = 1, self%length
     scalar => item%node%asScalar()
+    if (.not. associated(scalar)) call IO_error(711,ext_msg='float scalar')
     tList_as1dFloat(i) = scalar%asFloat()
     item => item%next
   end do
@@ -1245,6 +1247,7 @@ function tList_as2dFloat(self)
   do i=1,self%length
     row => self%get(i)
     row_data => row%asList()
+    if (.not. associated(row_data)) call IO_error(711,ext_msg='list of floats')
     if (row_data%length /= size(tList_as2dFloat,2)) call IO_error(709,ext_msg='Varying number of columns')
     tList_as2dFloat(i,:) = self%get_as1dFloat(i)
   end do
@@ -1269,6 +1272,7 @@ function tList_as1dInt(self)
   item => self%first
   do i = 1, self%length
     scalar => item%node%asScalar()
+    if (.not. associated(scalar)) call IO_error(711,ext_msg='int scalar')
     tList_as1dInt(i) = scalar%asInt()
     item => item%next
   end do
@@ -1293,6 +1297,7 @@ function tList_as1dBool(self)
   item => self%first
   do i = 1, self%length
     scalar => item%node%asScalar()
+    if (.not. associated(scalar)) call IO_error(711,ext_msg='bool scalar')
     tList_as1dBool(i) = scalar%asBool()
     item => item%next
   end do
@@ -1317,6 +1322,7 @@ function tList_as1dString(self)
   item => self%first
   do i = 1, self%length
     scalar => item%node%asScalar()
+    if (.not. associated(scalar)) call IO_error(711,ext_msg='string scalar')
     len_max = max(len_max, len_trim(scalar%asString()))
     item => item%next
   end do
@@ -1327,7 +1333,7 @@ function tList_as1dString(self)
     scalar => item%node%asScalar()
     tList_as1dString(i) = scalar%asString()
     item => item%next
-  enddo
+  end do
 
 end function tList_as1dString
 
@@ -1343,15 +1349,13 @@ subroutine tList_append(self,node)
   type(tItem), pointer :: item
 
   if (.not. associated(self%first)) then
-    allocate(self%first)
-    item => self%first
+    allocate(item)
+    self%first => item
+    self%last => item
   else
-    item => self%first
-    do while (associated(item%next))
-      item => item%next
-    enddo
-    allocate(item%next)
-    item => item%next
+    allocate(self%last%next)
+    item => self%last%next
+    self%last => item
   end if
 
   item%node => node
@@ -1380,7 +1384,7 @@ subroutine tDict_set(self,key,node)
     searchExisting: do while (associated(item%next))
       if (item%key == key) exit
       item => item%next
-    enddo searchExisting
+    end do searchExisting
     if (item%key /= key) then
       allocate(item%next)
       item => item%next
