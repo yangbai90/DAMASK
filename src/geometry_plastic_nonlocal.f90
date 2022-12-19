@@ -9,7 +9,7 @@ module geometry_plastic_nonlocal
   use prec
   use results
 
-  implicit none
+  implicit none(type,external)
   public
 
   integer, protected :: &
@@ -92,16 +92,16 @@ end subroutine geometry_plastic_nonlocal_setIPareaNormal
 !---------------------------------------------------------------------------------------------------
 subroutine geometry_plastic_nonlocal_disable
 
-  if(allocated(geometry_plastic_nonlocal_IPneighborhood)) &
+  if (allocated(geometry_plastic_nonlocal_IPneighborhood)) &
     deallocate(geometry_plastic_nonlocal_IPneighborhood)
 
-  if(allocated(geometry_plastic_nonlocal_IPvolume0)) &
+  if (allocated(geometry_plastic_nonlocal_IPvolume0)) &
     deallocate(geometry_plastic_nonlocal_IPvolume0)
 
-  if(allocated(geometry_plastic_nonlocal_IParea0)) &
+  if (allocated(geometry_plastic_nonlocal_IParea0)) &
     deallocate(geometry_plastic_nonlocal_IParea0)
 
-  if(allocated(geometry_plastic_nonlocal_IPareaNormal0)) &
+  if (allocated(geometry_plastic_nonlocal_IPareaNormal0)) &
     deallocate(geometry_plastic_nonlocal_IPareaNormal0)
 
 end subroutine geometry_plastic_nonlocal_disable

@@ -26,7 +26,11 @@ module grid_mechanical_spectral_polarisation
   use homogenization
   use discretization_grid
 
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR>14) && !defined(PETSC_HAVE_MPI_F90MODULE_VISIBILITY)
+  implicit none(type,external)
+#else
   implicit none
+#endif
   private
 
   type(tSolutionParams) :: params
@@ -111,24 +115,26 @@ contains
 !--------------------------------------------------------------------------------------------------
 !> @brief allocates all necessary fields and fills them with data, potentially from restart info
 !--------------------------------------------------------------------------------------------------
-subroutine grid_mechanical_spectral_polarisation_init
+subroutine grid_mechanical_spectral_polarisation_init()
 
   real(pReal), dimension(3,3,cells(1),cells(2),cells3) :: P
   PetscErrorCode :: err_PETSc
   integer(MPI_INTEGER_KIND) :: err_MPI
-  PetscScalar, pointer, dimension(:,:,:,:) :: &
+  real(pReal), pointer, dimension(:,:,:,:) :: &
     FandF_tau, &                                                                                    ! overall pointer to solution data
     F, &                                                                                            ! specific (sub)pointer
     F_tau                                                                                           ! specific (sub)pointer
   PetscInt, dimension(0:worldsize-1) :: localK
+  real(pReal), dimension(3,3,product(cells(1:2))*cells3) :: temp33n
   integer(HID_T) :: fileHandle, groupHandle
 #if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR>14) && !defined(PETSC_HAVE_MPI_F90MODULE_VISIBILITY)
   type(MPI_File) :: fileUnit
 #else
   integer :: fileUnit
 #endif
-  class (tNode), pointer :: &
-    num_grid, &
+  type(tDict), pointer :: &
+    num_grid
+  type(tList), pointer :: &
     debug_grid
   character(len=pStringLen) :: &
     extmsg = ''
@@ -140,12 +146,12 @@ subroutine grid_mechanical_spectral_polarisation_init
 
 !-------------------------------------------------------------------------------------------------
 ! debugging options
-  debug_grid => config_debug%get('grid',defaultVal=emptyList)
+  debug_grid => config_debug%get_list('grid',defaultVal=emptyList)
   debugRotation = debug_grid%contains('rotation')
 
 !-------------------------------------------------------------------------------------------------
 ! read numerical parameters and do sanity checks
-  num_grid => config_numerics%get('grid',defaultVal=emptyDict)
+  num_grid => config_numerics%get_dict('grid',defaultVal=emptyDict)
 
   num%update_gamma    = num_grid%get_asBool ('update_gamma',   defaultVal=.false.)
   num%eps_div_atol    = num_grid%get_asFloat('eps_div_atol',   defaultVal=1.0e-4_pReal)
@@ -245,10 +251,14 @@ subroutine grid_mechanical_spectral_polarisation_init
     call HDF5_read(F_aimDot,groupHandle,'F_aimDot',.false.)
     call MPI_Bcast(F_aimDot,9_MPI_INTEGER_KIND,MPI_DOUBLE,0_MPI_INTEGER_KIND,MPI_COMM_WORLD,err_MPI)
     if (err_MPI /= 0_MPI_INTEGER_KIND) error stop 'MPI error'
-    call HDF5_read(F,groupHandle,'F')
-    call HDF5_read(F_lastInc,groupHandle,'F_lastInc')
-    call HDF5_read(F_tau,groupHandle,'F_tau')
-    call HDF5_read(F_tau_lastInc,groupHandle,'F_tau_lastInc')
+    call HDF5_read(temp33n,groupHandle,'F')
+    F = reshape(temp33n,[9,cells(1),cells(2),cells3])
+    call HDF5_read(temp33n,groupHandle,'F_lastInc')
+    F_lastInc = reshape(temp33n,[3,3,cells(1),cells(2),cells3])
+    call HDF5_read(temp33n,groupHandle,'F_tau')
+    F_tau = reshape(temp33n,[9,cells(1),cells(2),cells3])
+    call HDF5_read(temp33n,groupHandle,'F_tau_lastInc')
+    F_tau_lastInc = reshape(temp33n,[3,3,cells(1),cells(2),cells3])
 
   elseif (CLI_restartInc == 0) then restartRead
     F_lastInc = spread(spread(spread(math_I3,3,cells(1)),4,cells(2)),5,cells3)                      ! initialize to identity
@@ -355,7 +365,7 @@ subroutine grid_mechanical_spectral_polarisation_forward(cutBack,guess,Delta_t,D
   type(tRotation),           intent(in) :: &
     rotation_BC
   PetscErrorCode :: err_PETSc
-  PetscScalar, pointer, dimension(:,:,:,:) :: FandF_tau, F, F_tau
+  real(pReal), pointer, dimension(:,:,:,:) :: FandF_tau, F, F_tau
   integer :: i, j, k
   real(pReal), dimension(3,3) :: F_lambda33
 
@@ -442,7 +452,7 @@ end subroutine grid_mechanical_spectral_polarisation_forward
 subroutine grid_mechanical_spectral_polarisation_updateCoords
 
   PetscErrorCode :: err_PETSc
-  PetscScalar, dimension(:,:,:,:), pointer :: FandF_tau
+  real(pReal), dimension(:,:,:,:), pointer :: FandF_tau
 
   call DMDAVecGetArrayF90(da,solution_vec,FandF_tau,err_PETSc)
   CHKERRQ(err_PETSc)
@@ -460,7 +470,7 @@ subroutine grid_mechanical_spectral_polarisation_restartWrite
 
   PetscErrorCode :: err_PETSc
   integer(HID_T) :: fileHandle, groupHandle
-  PetscScalar, dimension(:,:,:,:), pointer :: FandF_tau, F, F_tau
+  real(pReal), dimension(:,:,:,:), pointer :: FandF_tau, F, F_tau
 
   call DMDAVecGetArrayF90(da,solution_vec,FandF_tau,err_PETSc)
   CHKERRQ(err_PETSc)
@@ -471,10 +481,10 @@ subroutine grid_mechanical_spectral_polarisation_restartWrite
 
   fileHandle  = HDF5_openFile(getSolverJobName()//'_restart.hdf5','w')
   groupHandle = HDF5_addGroup(fileHandle,'solver')
-  call HDF5_write(F,groupHandle,'F')
-  call HDF5_write(F_lastInc,groupHandle,'F_lastInc')
-  call HDF5_write(F_tau,groupHandle,'F_tau')
-  call HDF5_write(F_tau_lastInc,groupHandle,'F_tau_lastInc')
+  call HDF5_write(reshape(F,[3,3,product(cells(1:2))*cells3]),groupHandle,'F')
+  call HDF5_write(reshape(F_lastInc,[3,3,product(cells(1:2))*cells3]),groupHandle,'F_lastInc')
+  call HDF5_write(reshape(F_tau,[3,3,product(cells(1:2))*cells3]),groupHandle,'F_tau')
+  call HDF5_write(reshape(F_tau_lastInc,[3,3,product(cells(1:2))*cells3]),groupHandle,'F_tau_lastInc')
   call HDF5_closeGroup(groupHandle)
   call HDF5_closeFile(fileHandle)
 
@@ -536,7 +546,7 @@ subroutine converged(snes_local,PETScIter,devNull1,devNull2,devNull3,reason,dumm
             err_div/divTol,  ' (',err_div, ' / m, tol = ',divTol,')'
   print  '(1x,a,f12.2,a,es8.2,a,es9.2,a)', 'error curl       = ', &
             err_curl/curlTol,' (',err_curl,' -,   tol = ',curlTol,')'
-  print  '(1x,a,f12.2,a,es8.2,a,es9.2,a)', 'error stress BC  = ', &
+  print  '(1x,a,f12.2,a,es8.2,a,es9.2,a)', 'error mech BC    = ', &
             err_BC/BCTol,    ' (',err_BC,  ' Pa,  tol = ',BCTol,')'
   print'(/,1x,a)', '==========================================================================='
   flush(IO_STDOUT)
@@ -546,17 +556,20 @@ end subroutine converged
 
 
 !--------------------------------------------------------------------------------------------------
-!> @brief forms the residual vector
+!> @brief Construct the residual vector.
 !--------------------------------------------------------------------------------------------------
-subroutine formResidual(in, FandF_tau, &
+subroutine formResidual(residual_subdomain, FandF_tau, &
                         r, dummy,err_PETSc)
 
-  DMDALocalInfo, dimension(DMDA_LOCAL_INFO_SIZE) :: in                                              !< DMDA info (needs to be named "in" for macros like XRANGE to work)
-  PetscScalar, dimension(3,3,2,XG_RANGE,YG_RANGE,ZG_RANGE), &
-    target, intent(in) :: FandF_tau
-  PetscScalar, dimension(3,3,2,X_RANGE,Y_RANGE,Z_RANGE),&
-    target, intent(out) :: r                                                                        !< residuum field
-  PetscScalar, pointer, dimension(:,:,:,:,:) :: &
+  DMDALocalInfo, dimension(DMDA_LOCAL_INFO_SIZE) :: residual_subdomain                              !< DMDA info (needs to be named "in" for macros like XRANGE to work)
+  real(pReal), dimension(3,3,2,cells(1),cells(2),cells3), target, intent(in) :: &
+    FandF_tau                                                                                       !< deformation gradient field
+  real(pReal), dimension(3,3,2,cells(1),cells(2),cells3), target, intent(out) :: &
+    r                                                                                               !< residuum field
+  PetscObject :: dummy
+  PetscErrorCode :: err_PETSc
+
+  real(pReal), pointer, dimension(:,:,:,:,:) :: &
     F, &
     F_tau, &
     r_F, &
@@ -564,22 +577,15 @@ subroutine formResidual(in, FandF_tau, &
   PetscInt :: &
     PETScIter, &
     nfuncs
-  PetscObject :: dummy
-  PetscErrorCode :: err_PETSc
   integer(MPI_INTEGER_KIND) :: err_MPI
   integer :: &
     i, j, k, e
 
-!---------------------------------------------------------------------------------------------------
 
-  F       => FandF_tau(1:3,1:3,1,&
-                       XG_RANGE,YG_RANGE,ZG_RANGE)
-  F_tau   => FandF_tau(1:3,1:3,2,&
-                       XG_RANGE,YG_RANGE,ZG_RANGE)
-  r_F     => r(1:3,1:3,1,&
-               X_RANGE, Y_RANGE, Z_RANGE)
-  r_F_tau => r(1:3,1:3,2,&
-               X_RANGE, Y_RANGE, Z_RANGE)
+  F       => FandF_tau(1:3,1:3,1,1:cells(1),1:cells(2),1:cells3)
+  F_tau   => FandF_tau(1:3,1:3,2,1:cells(1),1:cells(2),1:cells3)
+  r_F     => r(1:3,1:3,1,1:cells(1),1:cells(2),1:cells3)
+  r_F_tau => r(1:3,1:3,2,1:cells(1),1:cells(2),1:cells3)
 
   F_av = sum(sum(sum(F,dim=5),dim=4),dim=3) * wgt
   call MPI_Allreduce(MPI_IN_PLACE,F_av,9_MPI_INTEGER_KIND,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD,err_MPI)
@@ -592,8 +598,6 @@ subroutine formResidual(in, FandF_tau, &
 
   if (nfuncs == 0 .and. PETScIter == 0) totalIter = -1                                              ! new increment
 
-!--------------------------------------------------------------------------------------------------
-! begin of new iteration
   newIteration: if (totalIter <= PETScIter) then
     totalIter = totalIter + 1
     print'(1x,a,3(a,i0))', trim(incInfo), ' @ Iteration ', num%itmin, '≤',totalIter, '≤', num%itmax
@@ -604,63 +608,53 @@ subroutine formResidual(in, FandF_tau, &
     flush(IO_STDOUT)
   end if newIteration
 
-!--------------------------------------------------------------------------------------------------
-!
-  tensorField_real = 0.0_pReal
   do k = 1, cells3; do j = 1, cells(2); do i = 1, cells(1)
-    tensorField_real(1:3,1:3,i,j,k) = &
+    r_F_tau(1:3,1:3,i,j,k) = &
       num%beta*math_mul3333xx33(C_scale,F(1:3,1:3,i,j,k) - math_I3) -&
       num%alpha*matmul(F(1:3,1:3,i,j,k), &
                          math_mul3333xx33(C_scale,F_tau(1:3,1:3,i,j,k) - F(1:3,1:3,i,j,k) - math_I3))
   end do; end do; end do
+  r_F_tau = num%beta*F &
+          - utilities_GammaConvolution(r_F_tau,params%rotation_BC%rotate(num%beta*F_aim,active=.true.))
 
-!--------------------------------------------------------------------------------------------------
-! doing convolution in Fourier space
-  call utilities_FFTtensorForward
-  call utilities_fourierGammaConvolution(params%rotation_BC%rotate(num%beta*F_aim,active=.true.))
-  call utilities_FFTtensorBackward
+  err_curl = utilities_curlRMS(F)
 
-!--------------------------------------------------------------------------------------------------
-! constructing residual
-  r_F_tau = num%beta*F - tensorField_real(1:3,1:3,1:cells(1),1:cells(2),1:cells3)
+#ifdef __GFORTRAN__
+  call utilities_constitutiveResponse(r_F, &
+#else
+  associate (P => r_F)
+    call utilities_constitutiveResponse(P, &
+#endif
+                                        P_av,C_volAvg,C_minMaxAvg, &
+                                        F - r_F_tau/num%beta,params%Delta_t,params%rotation_BC)
+    call MPI_Allreduce(MPI_IN_PLACE,terminallyIll,1_MPI_INTEGER_KIND,MPI_LOGICAL,MPI_LOR,MPI_COMM_WORLD,err_MPI)
+#ifdef __GFORTRAN__
+    err_div = utilities_divergenceRMS(r_F)
+#else
+    err_div = utilities_divergenceRMS(P)
+#endif
+    e = 0
+    do k = 1, cells3; do j = 1, cells(2); do i = 1, cells(1)
+      e = e + 1
+      r_F(1:3,1:3,i,j,k) = &
+        math_mul3333xx33(math_invSym3333(homogenization_dPdF(1:3,1:3,1:3,1:3,e) + C_scale), &
+#ifdef __GFORTRAN__
+                         r_F(1:3,1:3,i,j,k) - matmul(F(1:3,1:3,i,j,k), &
+#else
+                         P(1:3,1:3,i,j,k) - matmul(F(1:3,1:3,i,j,k), &
+#endif
+                         math_mul3333xx33(C_scale,F_tau(1:3,1:3,i,j,k) - F(1:3,1:3,i,j,k) - math_I3))) &
+                         + r_F_tau(1:3,1:3,i,j,k)
+    end do; end do; end do
+#ifndef __GFORTRAN__
+  end associate
+#endif
 
-!--------------------------------------------------------------------------------------------------
-! evaluate constitutive response
-  call utilities_constitutiveResponse(r_F, &                                                        ! "residuum" gets field of first PK stress (to save memory)
-                                      P_av,C_volAvg,C_minMaxAvg, &
-                                      F - r_F_tau/num%beta,params%Delta_t,params%rotation_BC)
-  call MPI_Allreduce(MPI_IN_PLACE,terminallyIll,1_MPI_INTEGER_KIND,MPI_LOGICAL,MPI_LOR,MPI_COMM_WORLD,err_MPI)
-
-!--------------------------------------------------------------------------------------------------
-! stress BC handling
   F_aim = F_aim - math_mul3333xx33(S, P_av - P_aim)                                                 ! S = 0.0 for no bc
   err_BC = maxval(abs(merge(math_mul3333xx33(C_scale,F_aim-params%rotation_BC%rotate(F_av)), &
                             P_av-P_aim, &
                             params%stress_mask)))
-! calculate divergence
-  tensorField_real = 0.0_pReal
-  tensorField_real(1:3,1:3,1:cells(1),1:cells(2),1:cells3) = r_F                                    !< stress field in disguise
-  call utilities_FFTtensorForward
-  err_div = utilities_divergenceRMS()                                                               !< root mean squared error in divergence of stress
 
-!--------------------------------------------------------------------------------------------------
-! constructing residual
-  e = 0
-  do k = 1, cells3; do j = 1, cells(2); do i = 1, cells(1)
-    e = e + 1
-    r_F(1:3,1:3,i,j,k) = &
-      math_mul3333xx33(math_invSym3333(homogenization_dPdF(1:3,1:3,1:3,1:3,e) + C_scale), &
-                       r_F(1:3,1:3,i,j,k) - matmul(F(1:3,1:3,i,j,k), &
-                       math_mul3333xx33(C_scale,F_tau(1:3,1:3,i,j,k) - F(1:3,1:3,i,j,k) - math_I3))) &
-                       + r_F_tau(1:3,1:3,i,j,k)
-  end do; end do; end do
-
-!--------------------------------------------------------------------------------------------------
-! calculating curl
-  tensorField_real = 0.0_pReal
-  tensorField_real(1:3,1:3,1:cells(1),1:cells(2),1:cells3) = F
-  call utilities_FFTtensorForward
-  err_curl = utilities_curlRMS()
 
 end subroutine formResidual
 

@@ -27,7 +27,6 @@ submodule(phase:plastic) dislotwin
       gamma_0_sb = 1.0_pReal, &                                                                     !< value for shearband velocity_0
       E_sb       = 1.0_pReal, &                                                                     !< activation energy for shear bands
       h          = 1.0_pReal, &                                                                     !< stack height of hex nucleus
-      a_cF       = 1.0_pReal, &
       cOverA_hP  = 1.0_pReal, &
       V_mol      = 1.0_pReal, &
       rho        = 1.0_pReal
@@ -55,8 +54,8 @@ submodule(phase:plastic) dislotwin
     real(pReal),               allocatable, dimension(:,:) :: &
       h_sl_sl, &                                                                                    !< components of slip-slip interaction matrix
       h_sl_tw, &                                                                                    !< components of slip-twin interaction matrix
-      h_tw_tw, &                                                                                    !< components of twin-twin interaction matrix
       h_sl_tr, &                                                                                    !< components of slip-trans interaction matrix
+      h_tw_tw, &                                                                                    !< components of twin-twin interaction matrix
       h_tr_tr, &                                                                                    !< components of trans-trans interaction matrix
       n0_sl, &                                                                                      !< slip system normal
       forestProjection
@@ -142,7 +141,7 @@ module function plastic_dislotwin_init() result(myPlasticity)
     rho_dip_0                                                                                       !< initial dipole dislocation density per slip system
   character(len=pStringLen) :: &
     extmsg = ''
-  class(tNode), pointer :: &
+  type(tDict), pointer :: &
     phases, &
     phase, &
     mech, &
@@ -165,7 +164,7 @@ module function plastic_dislotwin_init() result(myPlasticity)
   print'(  1x,a)', 'https://doi.org/10.1016/j.actamat.2016.07.032'
 
 
-  phases => config_material%get('phase')
+  phases => config_material%get_dict('phase')
   allocate(param(phases%length))
   allocate(indexDotState(phases%length))
   allocate(state(phases%length))
@@ -177,9 +176,9 @@ module function plastic_dislotwin_init() result(myPlasticity)
     associate(prm => param(ph), stt => state(ph), dst => dependentState(ph), &
               idx_dot => indexDotState(ph))
 
-    phase => phases%get(ph)
-    mech  => phase%get('mechanical')
-    pl  => mech%get('plastic')
+    phase => phases%get_dict(ph)
+    mech  => phase%get_dict('mechanical')
+    pl  => mech%get_dict('plastic')
 
 #if defined (__GFORTRAN__)
     prm%output = output_as1dString(pl)
@@ -300,9 +299,9 @@ module function plastic_dislotwin_init() result(myPlasticity)
       prm%b_tr = math_expand(prm%b_tr,prm%N_tr)
 
       prm%i_tr       = pl%get_asFloat('i_tr')
-      prm%Delta_G    = polynomial(pl%asDict(),'Delta_G','T')
+      prm%Delta_G    = polynomial(pl,'Delta_G','T')
       prm%L_tr       = pl%get_asFloat('L_tr')
-      a_cF           = pl%get_asFloat('a_cF')
+      a_cF           = prm%b_tr(1)*sqrt(6.0_pReal)                                                  ! b_tr is Shockley partial
       prm%h          = 5.0_pReal * a_cF/sqrt(3.0_pReal)
       prm%cOverA_hP  = pl%get_asFloat('c/a_hP')
       prm%rho        = 4.0_pReal/(sqrt(3.0_pReal)*a_cF**2)/N_A
@@ -358,7 +357,7 @@ module function plastic_dislotwin_init() result(myPlasticity)
     end if
 
     if (prm%sum_N_tw + prm%sum_N_tr > 0 .or. prm%extendedDislocations) &
-      prm%Gamma_sf = polynomial(pl%asDict(),'Gamma_sf','T')
+      prm%Gamma_sf = polynomial(pl,'Gamma_sf','T')
 
     slipAndTwinActive: if (prm%sum_N_sl * prm%sum_N_tw > 0) then
       prm%h_sl_tw = lattice_interaction_SlipByTwin(N_sl,prm%N_tw,pl%get_as1dFloat('h_sl-tw'), &
@@ -371,6 +370,10 @@ module function plastic_dislotwin_init() result(myPlasticity)
                                                     phase_lattice(ph))
       if (prm%fccTwinTransNucleation .and. size(prm%N_tr) /= 1) extmsg = trim(extmsg)//' N_tr: nucleation'
     end if slipAndTransActive
+
+    twinAndTransActive: if (prm%sum_N_tw * prm%sum_N_tr > 0) then
+      if (dNeq(prm%b_tw(1),prm%b_tr(1))) extmsg = trim(extmsg)//' b_tw != b_tr'
+    end if twinAndTransActive
 
 !--------------------------------------------------------------------------------------------------
 ! allocate state arrays

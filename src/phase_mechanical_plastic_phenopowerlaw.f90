@@ -92,7 +92,7 @@ module function plastic_phenopowerlaw_init() result(myPlasticity)
     a                                                                                               !< non-Schmid coefficients
   character(len=pStringLen) :: &
     extmsg = ''
-  class(tNode), pointer :: &
+  type(tDict), pointer :: &
     phases, &
     phase, &
     mech, &
@@ -100,13 +100,13 @@ module function plastic_phenopowerlaw_init() result(myPlasticity)
 
 
   myPlasticity = plastic_active('phenopowerlaw')
-  if(count(myPlasticity) == 0) return
+  if (count(myPlasticity) == 0) return
 
   print'(/,1x,a)', '<<<+-  phase:mechanical:plastic:phenopowerlaw init  -+>>>'
   print'(/,a,i0)', ' # phases: ',count(myPlasticity); flush(IO_STDOUT)
 
 
-  phases => config_material%get('phase')
+  phases => config_material%get_dict('phase')
   allocate(param(phases%length))
   allocate(indexDotState(phases%length))
   allocate(state(phases%length))
@@ -117,9 +117,9 @@ module function plastic_phenopowerlaw_init() result(myPlasticity)
     associate(prm => param(ph), stt => state(ph), &
               idx_dot => indexDotState(ph))
 
-    phase => phases%get(ph)
-    mech => phase%get('mechanical')
-    pl => mech%get('plastic')
+    phase => phases%get_dict(ph)
+    mech => phase%get_dict('mechanical')
+    pl => mech%get_dict('plastic')
 
 !--------------------------------------------------------------------------------------------------
 ! slip related parameters
@@ -131,7 +131,7 @@ module function plastic_phenopowerlaw_init() result(myPlasticity)
 
       if (phase_lattice(ph) == 'cI') then
         a = pl%get_as1dFloat('a_nonSchmid',defaultVal=emptyRealArray)
-        if(size(a) > 0) prm%nonSchmidActive = .true.
+        if (size(a) > 0) prm%nonSchmidActive = .true.
         prm%P_nS_pos = lattice_nonSchmidMatrix(N_sl,a,+1)
         prm%P_nS_neg = lattice_nonSchmidMatrix(N_sl,a,-1)
       else
@@ -243,7 +243,7 @@ module function plastic_phenopowerlaw_init() result(myPlasticity)
     stt%xi_sl => plasticState(ph)%state(startIndex:endIndex,:)
     stt%xi_sl =  spread(xi_0_sl, 2, Nmembers)
     plasticState(ph)%atol(startIndex:endIndex) = pl%get_asFloat('atol_xi',defaultVal=1.0_pReal)
-    if(any(plasticState(ph)%atol(startIndex:endIndex) < 0.0_pReal)) extmsg = trim(extmsg)//' atol_xi'
+    if (any(plasticState(ph)%atol(startIndex:endIndex) < 0.0_pReal)) extmsg = trim(extmsg)//' atol_xi'
 
     startIndex = endIndex + 1
     endIndex   = endIndex + prm%sum_N_tw
@@ -257,7 +257,7 @@ module function plastic_phenopowerlaw_init() result(myPlasticity)
     idx_dot%gamma_sl = [startIndex,endIndex]
     stt%gamma_sl => plasticState(ph)%state(startIndex:endIndex,:)
     plasticState(ph)%atol(startIndex:endIndex) = pl%get_asFloat('atol_gamma',defaultVal=1.0e-6_pReal)
-    if(any(plasticState(ph)%atol(startIndex:endIndex) < 0.0_pReal)) extmsg = trim(extmsg)//' atol_gamma'
+    if (any(plasticState(ph)%atol(startIndex:endIndex) < 0.0_pReal)) extmsg = trim(extmsg)//' atol_gamma'
 
     startIndex = endIndex + 1
     endIndex   = endIndex + prm%sum_N_tw
@@ -347,8 +347,7 @@ module function phenopowerlaw_dotState(Mp,ph,en) result(dotState)
     sumF
   real(pReal), dimension(param(ph)%sum_N_sl) :: &
     dot_gamma_sl_pos,dot_gamma_sl_neg, &
-    right_SlipSlip
-
+    left_SlipSlip
 
   associate(prm => param(ph), stt => state(ph), &
             dot_xi_sl => dotState(indexDotState(ph)%xi_sl(1):indexDotState(ph)%xi_sl(2)), &
@@ -356,17 +355,17 @@ module function phenopowerlaw_dotState(Mp,ph,en) result(dotState)
             dot_gamma_sl => dotState(indexDotState(ph)%gamma_sl(1):indexDotState(ph)%gamma_sl(2)), &
             dot_gamma_tw => dotState(indexDotState(ph)%gamma_tw(1):indexDotState(ph)%gamma_tw(2)))
 
-    call kinetics_sl(Mp,ph,en,dot_gamma_sl_pos,dot_gamma_sl_neg)
+    call kinetics_sl(Mp,ph,en, dot_gamma_sl_pos,dot_gamma_sl_neg)
     dot_gamma_sl = abs(dot_gamma_sl_pos+dot_gamma_sl_neg)
-    call kinetics_tw(Mp,ph,en,dot_gamma_tw)
-
+    call kinetics_tw(Mp,ph,en, dot_gamma_tw)
     sumF = sum(stt%gamma_tw(:,en)/prm%gamma_char)
-    xi_sl_sat_offset = prm%f_sat_sl_tw*sqrt(sumF)
-    right_SlipSlip = sign(abs(1.0_pReal-stt%xi_sl(:,en) / (prm%xi_inf_sl+xi_sl_sat_offset))**prm%a_sl, &
-                          1.0_pReal-stt%xi_sl(:,en) / (prm%xi_inf_sl+xi_sl_sat_offset))
 
-    dot_xi_sl = prm%h_0_sl_sl * (1.0_pReal + prm%c_1*sumF** prm%c_2) * (1.0_pReal + prm%h_int) &
-                * matmul(prm%h_sl_sl,dot_gamma_sl*right_SlipSlip) &
+    xi_sl_sat_offset = prm%f_sat_sl_tw*sqrt(sumF)
+    left_SlipSlip = sign(abs(1.0_pReal-stt%xi_sl(:,en) / (prm%xi_inf_sl+xi_sl_sat_offset))**prm%a_sl, &
+                             1.0_pReal-stt%xi_sl(:,en) / (prm%xi_inf_sl+xi_sl_sat_offset))
+
+    dot_xi_sl = prm%h_0_sl_sl * (1.0_pReal + prm%c_1 * sumF**prm%c_2) * (1.0_pReal + prm%h_int) &
+                * left_SlipSlip * matmul(prm%h_sl_sl,dot_gamma_sl) &
               + matmul(prm%h_sl_tw,dot_gamma_tw)
 
     dot_xi_tw = prm%h_0_tw_sl * sum(stt%gamma_sl(:,en))**prm%c_3 &

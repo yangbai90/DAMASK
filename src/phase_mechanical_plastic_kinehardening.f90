@@ -79,14 +79,14 @@ module function plastic_kinehardening_init() result(myPlasticity)
     a                                                                                               !< non-Schmid coefficients
   character(len=pStringLen) :: &
     extmsg = ''
-  class(tNode), pointer :: &
+  type(tDict), pointer :: &
     phases, &
     phase, &
     mech, &
     pl
 
   myPlasticity = plastic_active('kinehardening')
-  if(count(myPlasticity) == 0) return
+  if (count(myPlasticity) == 0) return
 
   print'(/,1x,a)', '<<<+-  phase:mechanical:plastic:kinehardening init  -+>>>'
   print'(/,a,i0)', ' # phases: ',count(myPlasticity); flush(IO_STDOUT)
@@ -94,7 +94,7 @@ module function plastic_kinehardening_init() result(myPlasticity)
   print'(/,1x,a)', 'J.A. Wollmershauser et al., International Journal of Fatigue 36:181–193, 2012'
   print'(  1x,a)', 'https://doi.org/10.1016/j.ijfatigue.2011.07.008'
 
-  phases => config_material%get('phase')
+  phases => config_material%get_dict('phase')
   allocate(param(phases%length))
   allocate(indexDotState(phases%length))
   allocate(state(phases%length))
@@ -107,9 +107,9 @@ module function plastic_kinehardening_init() result(myPlasticity)
     associate(prm => param(ph), stt => state(ph), dlt => deltaState(ph), &
               idx_dot => indexDotState(ph))
 
-    phase => phases%get(ph)
-    mech => phase%get('mechanical')
-    pl => mech%get('plastic')
+    phase => phases%get_dict(ph)
+    mech => phase%get_dict('mechanical')
+    pl => mech%get_dict('plastic')
 
 #if defined (__GFORTRAN__)
     prm%output = output_as1dString(pl)
@@ -127,7 +127,7 @@ module function plastic_kinehardening_init() result(myPlasticity)
 
       if (phase_lattice(ph) == 'cI') then
         a = pl%get_as1dFloat('a_nonSchmid',defaultVal = emptyRealArray)
-        if(size(a) > 0) prm%nonSchmidActive = .true.
+        if (size(a) > 0) prm%nonSchmidActive = .true.
         prm%P_nS_pos = lattice_nonSchmidMatrix(N_sl,a,+1)
         prm%P_nS_neg = lattice_nonSchmidMatrix(N_sl,a,-1)
       else
@@ -189,7 +189,7 @@ module function plastic_kinehardening_init() result(myPlasticity)
     stt%xi => plasticState(ph)%state(startIndex:endIndex,:)
     stt%xi = spread(xi_0, 2, Nmembers)
     plasticState(ph)%atol(startIndex:endIndex) = pl%get_asFloat('atol_xi',defaultVal=1.0_pReal)
-    if(any(plasticState(ph)%atol(startIndex:endIndex) < 0.0_pReal)) extmsg = trim(extmsg)//' atol_xi'
+    if (any(plasticState(ph)%atol(startIndex:endIndex) < 0.0_pReal)) extmsg = trim(extmsg)//' atol_xi'
 
     startIndex = endIndex + 1
     endIndex   = endIndex + prm%sum_N_sl
@@ -202,7 +202,7 @@ module function plastic_kinehardening_init() result(myPlasticity)
     idx_dot%gamma = [startIndex,endIndex]
     stt%gamma => plasticState(ph)%state(startIndex:endIndex,:)
     plasticState(ph)%atol(startIndex:endIndex) = pl%get_asFloat('atol_gamma',defaultVal=1.0e-6_pReal)
-    if(any(plasticState(ph)%atol(startIndex:endIndex) < 0.0_pReal)) extmsg = trim(extmsg)//' atol_gamma'
+    if (any(plasticState(ph)%atol(startIndex:endIndex) < 0.0_pReal)) extmsg = trim(extmsg)//' atol_gamma'
 
     o = plasticState(ph)%offsetDeltaState
     startIndex = endIndex + 1

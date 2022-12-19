@@ -18,20 +18,22 @@ module parallelization
 
   use prec
 
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR>14) && !defined(PETSC_HAVE_MPI_F90MODULE_VISIBILITY)
+  implicit none(type,external)
+#else
   implicit none
+#endif
   private
 
 #ifndef PETSC
   integer, parameter, public :: &
-    MPI_INTEGER_KIND = pI64
+    MPI_INTEGER_KIND = pI64                                                                         !< needed for MSC.Marc
   integer(MPI_INTEGER_KIND), parameter, public :: &
-    worldrank = 0_MPI_INTEGER_KIND, &                                                               !< MPI dummy worldrank
-    worldsize = 1_MPI_INTEGER_KIND                                                                  !< MPI dummy worldsize
 #else
   integer(MPI_INTEGER_KIND), protected, public :: &
+#endif
     worldrank = 0_MPI_INTEGER_KIND, &                                                               !< MPI worldrank (/=0 for MPI simulations only)
     worldsize = 1_MPI_INTEGER_KIND                                                                  !< MPI worldsize (/=1 for MPI simulations only)
-#endif
 
 #ifndef PETSC
 public :: parallelization_bcast_str
@@ -51,7 +53,7 @@ contains
 !--------------------------------------------------------------------------------------------------
 !> @brief Initialize shared memory (openMP) and distributed memory (MPI) parallelization.
 !--------------------------------------------------------------------------------------------------
-subroutine parallelization_init
+subroutine parallelization_init()
 
   integer(MPI_INTEGER_KIND) :: err_MPI, typeSize, version, subversion, devNull
   character(len=4) :: rank_str
@@ -134,7 +136,7 @@ subroutine parallelization_init
     error stop 'Mismatch between MPI_DOUBLE and DAMASK pReal'
 
 !$ call get_environment_variable(name='OMP_NUM_THREADS',value=NumThreadsString,STATUS=got_env)
-!$ if(got_env /= 0) then
+!$ if (got_env /= 0) then
 !$   print'(1x,a)', 'Could not get $OMP_NUM_THREADS, using default'
 !$   OMP_NUM_THREADS = 4_pI32
 !$ else

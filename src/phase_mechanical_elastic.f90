@@ -19,12 +19,12 @@ contains
 !--------------------------------------------------------------------------------------------------
 module subroutine elastic_init(phases)
 
-  class(tNode), pointer :: &
+  type(tDict), pointer :: &
     phases
 
   integer :: &
     ph
-  class(tNode), pointer :: &
+  type(tDict), pointer :: &
     phase, &
     mech, &
     elastic
@@ -38,24 +38,24 @@ module subroutine elastic_init(phases)
   allocate(param(phases%length))
 
   do ph = 1, phases%length
-    phase   => phases%get(ph)
-    mech    => phase%get('mechanical')
-    elastic => mech%get('elastic')
+    phase   => phases%get_dict(ph)
+    mech    => phase%get_dict('mechanical')
+    elastic => mech%get_dict('elastic')
     if (elastic%get_asString('type') /= 'Hooke') call IO_error(200,ext_msg=elastic%get_asString('type'))
 
     associate(prm => param(ph))
 
-      prm%C_11 = polynomial(elastic%asDict(),'C_11','T')
-      prm%C_12 = polynomial(elastic%asDict(),'C_12','T')
-      prm%C_44 = polynomial(elastic%asDict(),'C_44','T')
+      prm%C_11 = polynomial(elastic,'C_11','T')
+      prm%C_12 = polynomial(elastic,'C_12','T')
+      prm%C_44 = polynomial(elastic,'C_44','T')
 
       if (any(phase_lattice(ph) == ['hP','tI'])) then
-        prm%C_13 = polynomial(elastic%asDict(),'C_13','T')
-        prm%C_33 = polynomial(elastic%asDict(),'C_33','T')
+        prm%C_13 = polynomial(elastic,'C_13','T')
+        prm%C_33 = polynomial(elastic,'C_33','T')
       end if
 
       if (phase_lattice(ph) == 'tI') &
-        prm%C_66 = polynomial(elastic%asDict(),'C_66','T')
+        prm%C_66 = polynomial(elastic,'C_66','T')
 
     end associate
   end do

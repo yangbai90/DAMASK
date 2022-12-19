@@ -2,7 +2,8 @@ import os
 import json
 import functools
 import colorsys
-from typing import Union, TextIO
+from typing import Optional, Union, TextIO
+from itertools import chain
 
 import numpy as np
 import scipy.interpolate as interp
@@ -48,7 +49,12 @@ class Colormap(mpl.colors.ListedColormap):
 
     def __eq__(self,
                other: object) -> bool:
-        """Test equality of colormaps."""
+        """
+        Return self==other.
+
+        Test equality of other.
+
+        """
         if not isinstance(other, Colormap):
             return NotImplemented
         return         len(self.colors) == len(other.colors) \
@@ -56,31 +62,61 @@ class Colormap(mpl.colors.ListedColormap):
 
     def __add__(self,
                 other: 'Colormap') -> 'Colormap':
-        """Concatenate."""
+        """
+        Return self+other.
+
+        Concatenate.
+
+        """
         return Colormap(np.vstack((self.colors,other.colors)),
                         f'{self.name}+{other.name}')
 
     def __iadd__(self,
                  other: 'Colormap') -> 'Colormap':
-        """Concatenate (in-place)."""
+        """
+        Return self+=other.
+
+        Concatenate (in-place).
+
+        """
         return self.__add__(other)
 
     def __mul__(self,
                 factor: int) -> 'Colormap':
-        """Repeat."""
+        """
+        Return self*other.
+
+        Repeat.
+
+        """
         return Colormap(np.vstack([self.colors]*factor),f'{self.name}*{factor}')
 
     def __imul__(self,
                  factor: int) -> 'Colormap':
-        """Repeat (in-place)."""
+        """
+        Return self*=other.
+
+        Repeat (in-place).
+
+        """
         return self.__mul__(factor)
 
     def __invert__(self) -> 'Colormap':
-        """Reverse."""
+        """
+        Return ~self.
+
+        Reverse.
+
+        """
         return self.reversed()
 
     def __repr__(self) -> str:
-        """Show as matplotlib figure."""
+        """
+        Return repr(self).
+
+        Show as matplotlib figure.
+
+        """
         fig = plt.figure(self.name,figsize=(5,.5))
         ax1 = fig.add_axes([0, 0, 1, 1])
         ax1.set_axis_off()
@@ -213,7 +249,7 @@ class Colormap(mpl.colors.ListedColormap):
 
         Parameters
         ----------
-        fraction : float or sequence of float
+        fraction : (sequence of) float
             Fractional coordinate(s) to evaluate Colormap at.
 
         Returns
@@ -239,8 +275,8 @@ class Colormap(mpl.colors.ListedColormap):
 
     def shade(self,
               field: np.ndarray,
-              bounds: FloatSequence = None,
-              gap: float = None) -> Image:
+              bounds: Optional[FloatSequence] = None,
+              gap: Optional[float] = None) -> Image:
         """
         Generate PIL image of 2D field using colormap.
 
@@ -279,7 +315,7 @@ class Colormap(mpl.colors.ListedColormap):
 
 
     def reversed(self,
-                 name: str = None) -> 'Colormap':
+                 name: Optional[str] = None) -> 'Colormap':
         """
         Reverse.
 
@@ -328,7 +364,7 @@ class Colormap(mpl.colors.ListedColormap):
 
 
     def save_paraview(self,
-                      fname: FileHandle = None):
+                      fname: Optional[FileHandle] = None):
         """
         Save as JSON file for use in Paraview.
 
@@ -338,16 +374,12 @@ class Colormap(mpl.colors.ListedColormap):
             File to store results. Defaults to colormap name + '.json'.
 
         """
-        colors = []
-        for i,c in enumerate(np.round(self.colors,6).tolist()):
-            colors+=[i]+c
-
         out = [{
                 'Creator':util.execution_stamp('Colormap'),
                 'ColorSpace':'RGB',
                 'Name':self.name,
                 'DefaultMap':True,
-                'RGBPoints':colors
+                'RGBPoints':list(chain.from_iterable([(i,*c) for i,c in enumerate(self.colors.round(6))]))
                }]
 
         fhandle = self._get_file_handle(fname,'.json')
@@ -356,7 +388,7 @@ class Colormap(mpl.colors.ListedColormap):
 
 
     def save_ASCII(self,
-                   fname: FileHandle = None):
+                   fname: Optional[FileHandle] = None):
         """
         Save as ASCII file.
 
@@ -367,11 +399,11 @@ class Colormap(mpl.colors.ListedColormap):
 
         """
         labels = {'RGBA':4} if self.colors.shape[1] == 4 else {'RGB': 3}
-        t = Table(labels,self.colors,f'Creator: {util.execution_stamp("Colormap")}')
+        t = Table(labels,self.colors,[f'Creator: {util.execution_stamp("Colormap")}'])
         t.save(self._get_file_handle(fname,'.txt'))
 
 
-    def save_GOM(self, fname: FileHandle = None):
+    def save_GOM(self, fname: Optional[FileHandle] = None):
         """
         Save as ASCII file for use in GOM Aramis.
 
@@ -392,7 +424,7 @@ class Colormap(mpl.colors.ListedColormap):
 
 
     def save_gmsh(self,
-                  fname: FileHandle = None):
+                  fname: Optional[FileHandle] = None):
         """
         Save as ASCII file for use in gmsh.
 

@@ -1,6 +1,6 @@
 import re
 import copy
-from typing import Union, Tuple, List, Iterable
+from typing import Optional, Union, Tuple, List, Iterable
 
 import pandas as pd
 import numpy as np
@@ -12,32 +12,38 @@ class Table:
     """Manipulate multi-dimensional spreadsheet-like data."""
 
     def __init__(self,
-                 shapes: dict,
-                 data: np.ndarray,
-                 comments: Union[str, Iterable[str]] = None):
+                 shapes: dict = {},
+                 data: Optional[np.ndarray] = None,
+                 comments: Union[None, str, Iterable[str]] = None):
         """
         New spreadsheet.
 
         Parameters
         ----------
-        shapes : dict with str:tuple pairs
-            Shapes of the data columns.
+        shapes : dict with str:tuple pairs, optional
+            Shapes of the data columns. Mandatory if 'data' is given.
             For instance, 'F':(3,3) for a deformation gradient, or 'r':(1,) for a scalar.
-        data : numpy.ndarray or pandas.DataFrame
+        data : numpy.ndarray or pandas.DataFrame, optional
             Data. Existing column labels of a pandas.DataFrame will be replaced.
-        comments : str or iterable of str, optional
+        comments : (iterable of) str, optional
             Additional, human-readable information.
 
         """
-        comments_ = [comments] if isinstance(comments,str) else comments
-        self.comments = [] if comments_ is None else [str(c) for c in comments_]
+        self.comments = [] if comments is None else  \
+                        [comments] if isinstance(comments,str) else \
+                        [str(c) for c in comments]
         self.shapes = { k:(v,) if isinstance(v,(np.int64,np.int32,int)) else v for k,v in shapes.items() }
         self.data = pd.DataFrame(data=data)
         self._relabel('uniform')
 
 
     def __repr__(self) -> str:
-        """Give short human-readable summary."""
+        """
+        Return repr(self).
+
+        Give short human-readable summary.
+
+        """
         self._relabel('shapes')
         data_repr = self.data.__repr__()
         self._relabel('uniform')
@@ -46,7 +52,12 @@ class Table:
 
     def __eq__(self,
                other: object) -> bool:
-        """Compare to other Table."""
+        """
+        Return self==other.
+
+        Test equality of other.
+
+        """
         return NotImplemented if not isinstance(other,Table) else \
                self.shapes == other.shapes and self.data.equals(other.data)
 
@@ -54,7 +65,9 @@ class Table:
     def __getitem__(self,
                     item: Union[slice, Tuple[slice, ...]]) -> 'Table':
         """
-        Slice the Table according to item.
+        Return self[item].
+
+        Return slice according to item.
 
         Parameters
         ----------
@@ -102,12 +115,22 @@ class Table:
 
 
     def __len__(self) -> int:
-        """Number of rows."""
+        """
+        Return len(self).
+
+        Number of rows.
+
+        """
         return len(self.data)
 
 
     def __copy__(self) -> 'Table':
-        """Create deep copy."""
+        """
+        Return deepcopy(self).
+
+        Create deep copy.
+
+        """
         return copy.deepcopy(self)
 
     copy = __copy__
@@ -161,16 +184,6 @@ class Table:
 
         """
         self.data.columns = self._label(self.shapes,how)                                            # type: ignore
-
-
-    def _add_comment(self,
-                     label: str,
-                     shape: Tuple[int, ...],
-                     info: str = None):
-        if info is not None:
-            specific = f'{label}{" "+str(shape) if np.prod(shape,dtype=np.int64) > 1 else ""}: {info}'
-            general  = util.execution_stamp('Table')
-            self.comments.append(f'{specific} / {general}')
 
 
     def isclose(self,
@@ -361,7 +374,7 @@ class Table:
     def set(self,
             label: str,
             data: np.ndarray,
-            info: str = None) -> 'Table':
+            info: Optional[str] = None) -> 'Table':
         """
         Add new or replace existing column data.
 
@@ -380,13 +393,15 @@ class Table:
             Updated table.
 
         """
-        dup = self.copy()
-        dup._add_comment(label, data.shape[1:], info)
+        def add_comment(label: str, shape: Tuple[int, ...],info: str) -> List[str]:
+            specific = f'{label}{" "+str(shape) if np.prod(shape,dtype=np.int64) > 1 else ""}: {info}'
+            general  = util.execution_stamp('Table')
+            return [f'{specific} / {general}']
 
-        if m := re.match(r'(.*)\[((\d+,)*(\d+))\]',label):
-            key = m.group(1)
-        else:
-            key = label
+        dup = self.copy()
+        if info is not None: self.comments += add_comment(label,data.shape[1:],info)
+
+        key = m.group(1) if (m := re.match(r'(.*)\[((\d+,)*(\d+))\]',label)) else label
 
         if key in dup.shapes:
 
@@ -405,7 +420,7 @@ class Table:
             new = pd.DataFrame(data=data.reshape(-1,size),
                                columns=[label]*size,
                               )
-            new.index = dup.data.index
+            new.index = new.index if dup.data.index.empty else dup.data.index
             dup.data = pd.concat([dup.data,new],axis=1)
 
         return dup
@@ -436,15 +451,15 @@ class Table:
     def rename(self,
                old: Union[str, Iterable[str]],
                new: Union[str, Iterable[str]],
-               info: str = None) -> 'Table':
+               info: Optional[str] = None) -> 'Table':
         """
         Rename column data.
 
         Parameters
         ----------
-        label_old : str or iterable of str
+        label_old : (iterable of) str
             Old column label(s).
-        label_new : str or iterable of str
+        label_new : (iterable of) str
             New column label(s).
 
         Returns

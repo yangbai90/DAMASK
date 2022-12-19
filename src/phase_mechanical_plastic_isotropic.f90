@@ -56,7 +56,7 @@ module function plastic_isotropic_init() result(myPlasticity)
     xi_0                                                                                            !< initial critical stress
   character(len=pStringLen) :: &
     extmsg = ''
-  class(tNode), pointer :: &
+  type(tDict), pointer :: &
     phases, &
     phase, &
     mech, &
@@ -64,7 +64,7 @@ module function plastic_isotropic_init() result(myPlasticity)
 
 
   myPlasticity = plastic_active('isotropic')
-  if(count(myPlasticity) == 0) return
+  if (count(myPlasticity) == 0) return
 
   print'(/,1x,a)', '<<<+-  phase:mechanical:plastic:isotropic init  -+>>>'
   print'(/,a,i0)', ' # phases: ',count(myPlasticity); flush(IO_STDOUT)
@@ -72,18 +72,18 @@ module function plastic_isotropic_init() result(myPlasticity)
   print'(/,1x,a)', 'T. Maiti and P. Eisenlohr, Scripta Materialia 145:37–40, 2018'
   print'(  1x,a)', 'https://doi.org/10.1016/j.scriptamat.2017.09.047'
 
-  phases => config_material%get('phase')
+  phases => config_material%get_dict('phase')
   allocate(param(phases%length))
   allocate(state(phases%length))
 
   do ph = 1, phases%length
-    if(.not. myPlasticity(ph)) cycle
+    if (.not. myPlasticity(ph)) cycle
 
     associate(prm => param(ph), stt => state(ph))
 
-    phase => phases%get(ph)
-    mech => phase%get('mechanical')
-    pl => mech%get('plastic')
+    phase => phases%get_dict(ph)
+    mech => phase%get_dict('mechanical')
+    pl => mech%get_dict('plastic')
 
 #if defined (__GFORTRAN__)
     prm%output = output_as1dString(pl)

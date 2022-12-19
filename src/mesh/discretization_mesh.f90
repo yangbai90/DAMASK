@@ -25,7 +25,11 @@ module discretization_mesh
   use YAML_types
   use prec
 
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR>14) && !defined(PETSC_HAVE_MPI_F90MODULE_VISIBILITY)
+  implicit none(type,external)
+#else
   implicit none
+#endif
   private
 
   integer, public, protected :: &
@@ -52,6 +56,11 @@ module discretization_mesh
   real(pReal), dimension(:,:,:), allocatable :: &
     mesh_ipCoordinates                                                                              !< IP x,y,z coordinates (after deformation!)
 
+  external :: &
+#ifdef PETSC_USE_64BIT_INDICES
+    DMDestroy, &
+#endif
+    DMView                                                                                          ! ToDo: write interface
   public :: &
     discretization_mesh_init, &
     mesh_FEM_build_ipVolumes, &
@@ -81,7 +90,7 @@ subroutine discretization_mesh_init(restart)
   integer(MPI_INTEGER_KIND) :: err_MPI
   PetscInt, dimension(:), allocatable :: &
     materialAt
-  class(tNode), pointer :: &
+  type(tDict), pointer :: &
     num_mesh
   integer :: p_i, dim                                                                               !< integration order (quadrature rule)
   type(tvec) :: coords_node0
@@ -92,7 +101,7 @@ subroutine discretization_mesh_init(restart)
 
 !--------------------------------------------------------------------------------
 ! read numerics parameter
-  num_mesh => config_numerics%get('mesh',defaultVal=emptyDict)
+  num_mesh => config_numerics%get_dict('mesh',defaultVal=emptyDict)
   p_i = num_mesh%get_asInt('p_i',defaultVal = 2)
 
 !---------------------------------------------------------------------------------
@@ -131,7 +140,7 @@ subroutine discretization_mesh_init(restart)
     call DMClone(globalMesh,geomMesh,err_PETSc)
   else
     call DMPlexDistribute(globalMesh,0_pPETSCINT,sf,geomMesh,err_PETSc)
-  endif
+  end if
   CHKERRQ(err_PETSc)
 
   allocate(mesh_boundaries(mesh_Nboundaries), source = 0_pPETSCINT)
@@ -145,11 +154,12 @@ subroutine discretization_mesh_init(restart)
     mesh_boundaries(1:nFaceSets) = pFaceSets
     CHKERRQ(err_PETSc)
     call ISRestoreIndicesF90(faceSetIS,pFaceSets,err_PETSc)
-  endif
+  end if
   call MPI_Bcast(mesh_boundaries,mesh_Nboundaries,MPI_INTEGER,0_MPI_INTEGER_KIND,MPI_COMM_WORLD,err_MPI)
   if (err_MPI /= 0_MPI_INTEGER_KIND) error stop 'MPI error'
 
-  call DMDestroy(globalMesh,err_PETSc); CHKERRQ(err_PETSc)
+  call DMDestroy(globalMesh,err_PETSc)
+  CHKERRQ(err_PETSc)
 
   call DMGetStratumSize(geomMesh,'depth',dimPlex,Nelems,err_PETSc)
   CHKERRQ(err_PETSc)
@@ -172,7 +182,7 @@ subroutine discretization_mesh_init(restart)
   do j = 1, mesh_NcpElems
     call DMGetLabelValue(geomMesh,'Cell Sets',j-1,materialAt(j),err_PETSc)
     CHKERRQ(err_PETSc)
-  enddo
+  end do
   materialAt = materialAt + 1_pPETSCINT
 
   if (debug_element < 1 .or. debug_element > mesh_NcpElems) call IO_error(602,ext_msg='element')
@@ -212,7 +222,7 @@ subroutine mesh_FEM_build_ipVolumes(dimPlex)
     call  DMPlexComputeCellGeometryFVM(geomMesh,cell,vol,pCent,pNorm,err_PETSc)
     CHKERRQ(err_PETSc)
     mesh_ipVolume(:,cell+1) = vol/real(mesh_maxNips,pReal)
-  enddo
+  end do
 
 end subroutine mesh_FEM_build_ipVolumes
 
@@ -242,17 +252,17 @@ subroutine mesh_FEM_build_ipCoordinates(dimPlex,qPoints)
     call DMPlexComputeCellGeometryAffineFEM(geomMesh,cell,pV0,pCellJ,pInvcellJ,detJ,err_PETSc)
     CHKERRQ(err_PETSc)
     qOffset = 0
-    do qPt = 1, mesh_maxNips
-      do dirI = 1, dimPlex
+    do qPt = 1_pPETSCINT, mesh_maxNips
+      do dirI = 1_pPETSCINT, dimPlex
         mesh_ipCoordinates(dirI,qPt,cell+1) = pV0(dirI)
-        do dirJ = 1, dimPlex
+        do dirJ = 1_pPETSCINT, dimPlex
           mesh_ipCoordinates(dirI,qPt,cell+1) = mesh_ipCoordinates(dirI,qPt,cell+1) + &
                                                 pCellJ((dirI-1)*dimPlex+dirJ)*(qPoints(qOffset+dirJ) + 1.0_pReal)
-        enddo
-      enddo
+        end do
+      end do
       qOffset = qOffset + dimPlex
-    enddo
-  enddo
+    end do
+  end do
 
 end subroutine mesh_FEM_build_ipCoordinates
 

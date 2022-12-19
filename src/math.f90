@@ -10,9 +10,18 @@ module math
   use IO
   use config
   use YAML_types
+  use parallelization
   use LAPACK_interface
 
-  implicit none
+#ifdef PETSC
+#include <petsc/finclude/petscsys.h>
+  use PETScSys
+#if (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR>14) && !defined(PETSC_HAVE_MPI_F90MODULE_VISIBILITY)
+  use MPI_f08
+#endif
+#endif
+
+  implicit none(type,external)
   public
 #if __INTEL_COMPILER >= 1900
   ! do not make use of associated entities available to other modules
@@ -87,13 +96,13 @@ subroutine math_init()
   real(pReal), dimension(4) :: randTest
   integer :: randSize
   integer, dimension(:), allocatable :: seed
-  class(tNode), pointer :: &
+  type(tDict), pointer :: &
     num_generic
 
 
   print'(/,1x,a)', '<<<+-  math init  -+>>>'; flush(IO_STDOUT)
 
-  num_generic => config_numerics%get('generic',defaultVal=emptyDict)
+  num_generic => config_numerics%get_dict('generic',defaultVal=emptyDict)
 
   call random_seed(size=randSize)
   allocate(seed(randSize))
@@ -105,7 +114,7 @@ subroutine math_init()
     call random_seed(get = seed)
   end if
 
-  call random_seed(put = seed)
+  call random_seed(put = seed + worldrank*42_MPI_INTEGER_KIND)
   call random_number(randTest)
 
   print'(/,a,i2)',              ' size  of random seed:     ', randSize
@@ -486,22 +495,25 @@ end function math_inv33
 !> @details Direct Cramer inversion of matrix A. Also returns determinant
 !  Returns an error if not possible, i.e. if determinant is close to zero
 !--------------------------------------------------------------------------------------------------
-pure subroutine math_invert33(InvA, DetA, error, A)
+pure subroutine math_invert33(InvA,DetA,error, A)
 
   real(pReal), dimension(3,3), intent(out) :: InvA
-  real(pReal),                 intent(out) :: DetA
+  real(pReal),                 intent(out), optional :: DetA
   logical,                     intent(out) :: error
   real(pReal), dimension(3,3), intent(in)  :: A
+
+  real(pReal) :: Det
 
 
   InvA(1,1) =  A(2,2) * A(3,3) - A(2,3) * A(3,2)
   InvA(2,1) = -A(2,1) * A(3,3) + A(2,3) * A(3,1)
   InvA(3,1) =  A(2,1) * A(3,2) - A(2,2) * A(3,1)
 
-  DetA = A(1,1) * InvA(1,1) + A(1,2) * InvA(2,1) + A(1,3) * InvA(3,1)
+  Det = A(1,1) * InvA(1,1) + A(1,2) * InvA(2,1) + A(1,3) * InvA(3,1)
 
-  if (dEq0(DetA)) then
+  if (dEq0(Det)) then
     InvA = 0.0_pReal
+    if (present(DetA)) DetA = 0.0_pReal
     error = .true.
   else
     InvA(1,2) = -A(1,2) * A(3,3) + A(1,3) * A(3,2)
@@ -512,7 +524,8 @@ pure subroutine math_invert33(InvA, DetA, error, A)
     InvA(2,3) = -A(1,1) * A(2,3) + A(1,3) * A(2,1)
     InvA(3,3) =  A(1,1) * A(2,2) - A(1,2) * A(2,1)
 
-    InvA = InvA/DetA
+    InvA = InvA/Det
+    if (present(DetA)) DetA = Det
     error = .false.
   end if
 
